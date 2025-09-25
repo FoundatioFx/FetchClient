@@ -381,7 +381,10 @@ export class FetchClient {
       }
     }
 
-    if (init?.body && typeof init.body === "object") {
+    if (
+      init?.body && typeof init.body === "object" &&
+      !(init.body instanceof FormData)
+    ) {
       init.body = JSON.stringify(init.body);
     }
 
@@ -619,12 +622,13 @@ export class FetchClient {
     body: object | string | FormData | undefined,
     options: RequestOptions | undefined,
   ): RequestInitWithObjectBody {
-    const isDefinitelyJsonBody = body !== undefined &&
-      body !== null &&
-      typeof body === "object";
+    const isFormData = typeof FormData !== "undefined" &&
+      body instanceof FormData;
+    const isJsonLikeObject = body !== undefined && body !== null &&
+      typeof body === "object" && !isFormData;
 
     const headers: Record<string, string> = {};
-    if (isDefinitelyJsonBody) {
+    if (isJsonLikeObject) {
       headers["Content-Type"] = "application/json";
     }
 
