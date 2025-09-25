@@ -13,7 +13,7 @@
     "jsr:@std/path@^1.1.2": "1.1.2",
     "jsr:@ts-morph/bootstrap@0.27": "0.27.0",
     "jsr:@ts-morph/common@0.27": "0.27.0",
-    "npm:zod@^4.1.4": "4.1.4"
+    "npm:zod@^4.1.11": "4.1.11"
   },
   "jsr": {
     "@david/code-block-writer@13.0.3": {
@@ -69,8 +69,8 @@
     }
   },
   "npm": {
-    "zod@4.1.4": {
-      "integrity": "sha512-2YqJuWkU6IIK9qcE4k1lLLhyZ6zFw7XVRdQGpV97jEIZwTrscUw+DY31Xczd8nwaoksyJUIxCojZXwckJovWxA=="
+    "zod@4.1.11": {
+      "integrity": "sha512-WPsqwxITS2tzx1bzhIKsEs19ABD5vmCVa4xBo2tq/SrV4RNZtfws1EnCWQXM6yh8bD08a1idvkB5MZSBiZsjwg=="
     }
   },
   "remote": {
@@ -93,7 +93,7 @@
       "jsr:@deno/dnt@~0.42.3",
       "jsr:@std/assert@^1.0.14",
       "jsr:@std/path@^1.1.2",
-      "npm:zod@^4.1.4"
+      "npm:zod@^4.1.11"
     ]
   }
 }
