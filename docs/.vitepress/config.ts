@@ -1,11 +1,23 @@
 import { defineConfig } from "vitepress";
+import llmstxt from "vitepress-plugin-llms";
+import { withMermaid } from "vitepress-plugin-mermaid";
 
-export default defineConfig({
+export default withMermaid(defineConfig({
   title: "Foundatio FetchClient",
   description:
     "A tiny, typed wrapper around fetch with caching, middleware, rate limiting, and great DX.",
   base: "/",
   ignoreDeadLinks: true,
+  markdown: {
+    lineNumbers: false,
+  },
+  vite: {
+    plugins: [
+      llmstxt({
+        ignoreFiles: ["node_modules/**", ".vitepress/**"],
+      }),
+    ],
+  },
   head: [
     [
       "link",
@@ -63,7 +75,4 @@ export default defineConfig({
       provider: "local",
     },
   },
-  markdown: {
-    lineNumbers: false,
-  },
-});
+}));

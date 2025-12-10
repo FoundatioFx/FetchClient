@@ -1,14 +1,17 @@
 {
   "name": "@foundatiofx/fetchclient-docs",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
+  "description": "FetchClient Documentation",
   "scripts": {
     "dev": "vitepress dev",
     "build": "vitepress build",
     "preview": "vitepress preview"
   },
   "devDependencies": {
-    "vitepress": "^1.2.3"
+    "vitepress": "^2.0.0-alpha.15",
+    "vitepress-plugin-mermaid": "^2.0.17",
+    "vitepress-plugin-llms": "^1.9.3"
   }
 }
