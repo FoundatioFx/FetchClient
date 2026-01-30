@@ -8,6 +8,7 @@ import {
 import type { FetchClientResponse } from "./FetchClientResponse.ts";
 import type { ProblemDetails } from "./ProblemDetails.ts";
 import type { RateLimitMiddlewareOptions } from "./RateLimitMiddleware.ts";
+import type { CircuitBreakerMiddlewareOptions } from "./CircuitBreakerMiddleware.ts";
 import type { GetRequestOptions, RequestOptions } from "./RequestOptions.ts";
 
 let getCurrentProviderFunc: () => FetchClientProvider | null = () => null;
@@ -184,4 +185,24 @@ export function usePerDomainRateLimit(
   options: Omit<RateLimitMiddlewareOptions, "getGroupFunc">,
 ) {
   getCurrentProvider().usePerDomainRateLimit(options);
+}
+
+/**
+ * Enables circuit breaker for any FetchClient instances created by the current provider.
+ * The circuit breaker monitors failures and blocks requests when a service is failing.
+ * @param options - The circuit breaker configuration options.
+ */
+export function useCircuitBreaker(options?: CircuitBreakerMiddlewareOptions) {
+  getCurrentProvider().useCircuitBreaker(options);
+}
+
+/**
+ * Enables per-domain circuit breaker for any FetchClient instances created by the current provider.
+ * Each domain gets its own circuit breaker, so failures on one domain don't affect others.
+ * @param options - The circuit breaker configuration options.
+ */
+export function usePerDomainCircuitBreaker(
+  options?: Omit<CircuitBreakerMiddlewareOptions, "getGroupFunc">,
+) {
+  getCurrentProvider().usePerDomainCircuitBreaker(options);
 }

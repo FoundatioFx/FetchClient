@@ -15,3 +15,17 @@ export {
   FetchClientProvider,
 } from "./src/FetchClientProvider.ts";
 export * from "./src/DefaultHelpers.ts";
+export {
+  CircuitBreaker,
+  type CircuitBreakerOptions,
+  type CircuitState,
+  groupByDomain as circuitBreakerGroupByDomain,
+  type GroupCircuitBreakerOptions,
+} from "./src/CircuitBreaker.ts";
+export {
+  CircuitBreakerMiddleware,
+  type CircuitBreakerMiddlewareOptions,
+  CircuitOpenError,
+  createCircuitBreakerMiddleware,
+  createPerDomainCircuitBreakerMiddleware,
+} from "./src/CircuitBreakerMiddleware.ts";

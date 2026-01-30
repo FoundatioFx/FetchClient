@@ -10,6 +10,14 @@ import {
   type RateLimitMiddlewareOptions,
 } from "./RateLimitMiddleware.ts";
 import { groupByDomain, type RateLimiter } from "./RateLimiter.ts";
+import {
+  CircuitBreakerMiddleware,
+  type CircuitBreakerMiddlewareOptions,
+} from "./CircuitBreakerMiddleware.ts";
+import {
+  type CircuitBreaker,
+  groupByDomain as circuitBreakerGroupByDomain,
+} from "./CircuitBreaker.ts";
 
 type Fetch = typeof globalThis.fetch;
 
@@ -21,6 +29,9 @@ export class FetchClientProvider {
   #fetch?: Fetch;
   #cache: FetchClientCache;
   #rateLimitMiddleware?: RateLimitMiddleware;
+  #rateLimitMiddlewareFunc?: FetchClientMiddleware;
+  #circuitBreakerMiddleware?: CircuitBreakerMiddleware;
+  #circuitBreakerMiddlewareFunc?: FetchClientMiddleware;
   #counter = new Counter();
   #onLoading = new ObjectEvent<boolean>();
 
@@ -200,7 +211,8 @@ export class FetchClientProvider {
    */
   public useRateLimit(options: RateLimitMiddlewareOptions) {
     this.#rateLimitMiddleware = new RateLimitMiddleware(options);
-    this.useMiddleware(this.#rateLimitMiddleware.middleware());
+    this.#rateLimitMiddlewareFunc = this.#rateLimitMiddleware.middleware();
+    this.useMiddleware(this.#rateLimitMiddlewareFunc);
   }
 
   /**
@@ -214,7 +226,8 @@ export class FetchClientProvider {
       ...options,
       getGroupFunc: groupByDomain,
     });
-    this.useMiddleware(this.#rateLimitMiddleware.middleware());
+    this.#rateLimitMiddlewareFunc = this.#rateLimitMiddleware.middleware();
+    this.useMiddleware(this.#rateLimitMiddlewareFunc);
   }
 
   /**
@@ -229,10 +242,66 @@ export class FetchClientProvider {
    * Removes the rate limiting middleware from all FetchClient instances created by this provider.
    */
   public removeRateLimit() {
+    const middlewareFunc = this.#rateLimitMiddlewareFunc;
     this.#rateLimitMiddleware = undefined;
-    this.#options.middleware = this.#options.middleware?.filter(
-      (m) => !(m instanceof RateLimitMiddleware),
-    );
+    this.#rateLimitMiddlewareFunc = undefined;
+    if (middlewareFunc) {
+      this.#options.middleware = this.#options.middleware?.filter(
+        (m) => m !== middlewareFunc,
+      );
+    }
+  }
+
+  /**
+   * Enables circuit breaker for all FetchClient instances created by this provider.
+   * The circuit breaker monitors failures and blocks requests when a service is failing,
+   * allowing time for recovery.
+   * @param options - The circuit breaker configuration options.
+   */
+  public useCircuitBreaker(options?: CircuitBreakerMiddlewareOptions) {
+    this.#circuitBreakerMiddleware = new CircuitBreakerMiddleware(options);
+    this.#circuitBreakerMiddlewareFunc = this.#circuitBreakerMiddleware
+      .middleware();
+    this.useMiddleware(this.#circuitBreakerMiddlewareFunc);
+  }
+
+  /**
+   * Enables per-domain circuit breaker for all FetchClient instances created by this provider.
+   * Each domain gets its own circuit breaker, so failures on one domain don't affect others.
+   * @param options - The circuit breaker configuration options.
+   */
+  public usePerDomainCircuitBreaker(
+    options?: Omit<CircuitBreakerMiddlewareOptions, "getGroupFunc">,
+  ) {
+    this.#circuitBreakerMiddleware = new CircuitBreakerMiddleware({
+      ...options,
+      getGroupFunc: circuitBreakerGroupByDomain,
+    });
+    this.#circuitBreakerMiddlewareFunc = this.#circuitBreakerMiddleware
+      .middleware();
+    this.useMiddleware(this.#circuitBreakerMiddlewareFunc);
+  }
+
+  /**
+   * Gets the circuit breaker instance.
+   * @returns The circuit breaker instance, or undefined if not enabled.
+   */
+  public get circuitBreaker(): CircuitBreaker | undefined {
+    return this.#circuitBreakerMiddleware?.circuitBreaker;
+  }
+
+  /**
+   * Removes the circuit breaker middleware from all FetchClient instances created by this provider.
+   */
+  public removeCircuitBreaker() {
+    const middlewareFunc = this.#circuitBreakerMiddlewareFunc;
+    this.#circuitBreakerMiddleware = undefined;
+    this.#circuitBreakerMiddlewareFunc = undefined;
+    if (middlewareFunc) {
+      this.#options.middleware = this.#options.middleware?.filter(
+        (m) => m !== middlewareFunc,
+      );
+    }
   }
 }
 

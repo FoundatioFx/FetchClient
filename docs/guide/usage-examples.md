@@ -110,6 +110,136 @@ const client = new FetchClient();
 await client.getJSON(`https://api.example.com/data`);
 ```
 
+## Circuit Breaker
+
+The circuit breaker pattern prevents cascading failures when an API goes down. When a service starts failing, the circuit "opens" and blocks further requests for a period, allowing the service time to recover.
+
+### Basic Usage
+
+```ts
+import { FetchClientProvider, useCircuitBreaker } from "@foundatiofx/fetchclient";
+
+const provider = new FetchClientProvider();
+provider.setBaseUrl("https://api.example.com");
+
+// Enable circuit breaker
+provider.useCircuitBreaker({
+  failureThreshold: 5,    // Open after 5 failures
+  openDurationMs: 30000,  // Stay open for 30 seconds
+  successThreshold: 2,    // Close after 2 successes in HALF_OPEN
+});
+
+const client = provider.getFetchClient();
+
+// If API starts failing, circuit opens automatically
+// Subsequent requests get 503 without hitting the API
+const response = await client.getJSON("/users");
+if (response.status === 503) {
+  // Circuit is open - service is down
+}
+```
+
+### Per-Domain Circuit Breaker
+
+```ts
+provider.usePerDomainCircuitBreaker({
+  failureThreshold: 5,
+  openDurationMs: 30000,
+});
+
+// Each domain has its own circuit
+await client.getJSON("https://api1.example.com/data"); // Circuit for api1
+await client.getJSON("https://api2.example.com/data"); // Circuit for api2
+
+// Failures on api1 don't affect api2's circuit
+```
+
+### Combined with Rate Limiting
+
+```ts
+provider.useRateLimit({ maxRequests: 100, windowSeconds: 60 });
+provider.useCircuitBreaker({ failureThreshold: 5 });
+
+// Rate limiter prevents overwhelming the API
+// Circuit breaker stops requests when API is down
+```
+
+### Custom Failure Detection
+
+By default, 5xx errors and 429 (rate limited) responses count as failures. You can customize this:
+
+```ts
+provider.useCircuitBreaker({
+  failureThreshold: 3,
+  isFailure: (response) => {
+    // Only count 5xx errors as failures
+    return response.status >= 500;
+  },
+});
+```
+
+### State Change Callbacks
+
+```ts
+provider.useCircuitBreaker({
+  onStateChange: (from, to) => {
+    console.log(`Circuit: ${from} -> ${to}`);
+  },
+  onOpen: (group) => {
+    console.log(`Service ${group} is down!`);
+  },
+  onClose: (group) => {
+    console.log(`Service ${group} recovered`);
+  },
+  onHalfOpen: (group) => {
+    console.log(`Testing if ${group} recovered...`);
+  },
+});
+```
+
+### Manual Circuit Control
+
+```ts
+const breaker = provider.circuitBreaker!;
+
+// Force open the circuit (e.g., during maintenance)
+breaker.trip("https://api.example.com/users");
+
+// Force close the circuit
+breaker.reset("https://api.example.com/users");
+
+// Check state
+console.log(breaker.getState("https://api.example.com/users")); // "OPEN" | "CLOSED" | "HALF_OPEN"
+
+// Get failure count
+console.log(breaker.getFailureCount("https://api.example.com/users"));
+```
+
+### Circuit States
+
+- **CLOSED**: Normal operation. Requests pass through, failures are tracked.
+- **OPEN**: Circuit tripped. Requests immediately return 503 (Service Unavailable).
+- **HALF_OPEN**: Testing recovery. Limited requests allowed to test if service recovered.
+
+### Throwing Errors Instead of 503
+
+```ts
+import { CircuitOpenError } from "@foundatiofx/fetchclient";
+
+provider.useCircuitBreaker({
+  throwOnOpen: true, // Throw instead of returning 503
+});
+
+try {
+  await client.getJSON("/users");
+} catch (error) {
+  if (error instanceof CircuitOpenError) {
+    console.log(`Circuit open for group: ${error.group}`);
+    console.log(`Retry after: ${error.retryAfter}ms`);
+  }
+}
+```
+
 ## Request Timeout & Cancellation
 
 ```ts

@@ -53,7 +53,28 @@ export default withMermaid(defineConfig({
               link: "/guide/what-is-fetchclient",
             },
             { text: "Getting Started", link: "/guide/getting-started" },
-            { text: "Usage Examples", link: "/guide/usage-examples" },
+            { text: "Provider", link: "/guide/provider" },
+          ],
+        },
+        {
+          text: "Features",
+          items: [
+            { text: "Caching", link: "/guide/caching" },
+            { text: "Middleware", link: "/guide/middleware" },
+            { text: "Rate Limiting", link: "/guide/rate-limiting" },
+            { text: "Circuit Breaker", link: "/guide/circuit-breaker" },
+            { text: "Error Handling", link: "/guide/error-handling" },
+          ],
+        },
+        {
+          text: "Testing",
+          items: [
+            { text: "MockRegistry", link: "/guide/testing" },
+          ],
+        },
+        {
+          text: "More",
+          items: [
             { text: "Contributing", link: "/guide/contributing" },
           ],
         },

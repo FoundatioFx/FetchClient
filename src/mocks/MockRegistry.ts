@@ -293,7 +293,10 @@ export class MockRegistry {
    * ```
    */
   get fetch(): Fetch {
-    return ((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
+    return ((
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ): Promise<Response> => {
       return this.#handleRequest(input, init);
     }) as Fetch;
   }

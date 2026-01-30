@@ -2,3 +2,5 @@
 /npm
 *.lcov
 /cov
+
+nul
