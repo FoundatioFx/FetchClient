@@ -8,11 +8,12 @@ npm install @foundatiofx/fetchclient
 
 ## Quick Usage
 
-FetchClient offers two styles: **functional** (no classes) and **class-based**. Choose whichever you prefer - both have full access to all features.
+FetchClient offers two styles: **functional** and **class-based**. Choose
+whichever you prefer - both have full access to all features.
 
 ### Functional Style (Recommended)
 
-Use simple functions - no `new` keyword, no classes:
+Use simple functions:
 
 ```ts
 import { getJSON, postJSON, setBaseUrl } from "@foundatiofx/fetchclient";
@@ -25,7 +26,7 @@ const { data: users } = await getJSON<User[]>("/users");
 const { data: created } = await postJSON<User>("/users", { name: "Alice" });
 ```
 
-Or use `getFetchClient()` to get a client instance (fewer imports when using multiple methods):
+Or use `getFetchClient()` if you prefer working with a client instance:
 
 ```ts
 import { getFetchClient, setBaseUrl } from "@foundatiofx/fetchclient";
@@ -34,103 +35,43 @@ setBaseUrl("https://api.example.com");
 
 const client = getFetchClient();
 const { data: users } = await client.getJSON<User[]>("/users");
-const { data: created } = await client.postJSON<User>("/users", { name: "Alice" });
-await client.deleteJSON("/users/1");
-```
-
-All the function exports:
-
-```ts
-import {
-  // HTTP methods
-  getJSON,
-  postJSON,
-  putJSON,
-  patchJSON,
-  deleteJSON,
-
-  // Get a client instance (alternative to individual function imports)
-  getFetchClient,
-
-  // Configuration
-  setBaseUrl,
-  setAccessTokenFunc,
-  useMiddleware,
-  useRateLimit,
-  usePerDomainRateLimit,
-  useCircuitBreaker,
-  usePerDomainCircuitBreaker,
-  setModelValidator,
-} from "@foundatiofx/fetchclient";
-```
-
-### Class-Based Style
-
-If you prefer classes, use `FetchClient` directly:
-
-```ts
-import { FetchClient } from "@foundatiofx/fetchclient";
-
-const client = new FetchClient({ baseUrl: "https://api.example.com" });
-
-const { data: users } = await client.getJSON<User[]>("/users");
-const { data: created } = await client.postJSON<User>("/users", { name: "Alice" });
-```
-
-### Under the Hood
-
-All styles use the same [default provider](/guide/provider#default-provider). The functional API is just a convenient wrapper:
-
-```ts
-// These are all equivalent:
-await getJSON("/users");
-await getFetchClient().getJSON("/users");
-await getCurrentProvider().getFetchClient().getJSON("/users");
+const { data: created } = await client.postJSON<User>("/users", {
+  name: "Alice",
+});
 ```
 
 ## Adding Middleware
 
-**Functional:**
-
 ```ts
-import { getJSON, useMiddleware } from "@foundatiofx/fetchclient";
+import { useMiddleware } from "@foundatiofx/fetchclient";
 
 useMiddleware(async (ctx, next) => {
   console.log("→", ctx.request.url);
   await next();
   console.log("←", ctx.response?.status);
 });
-
-await getJSON("https://api.example.com/users");
 ```
 
-**Class-based:**
+## Authentication
 
 ```ts
-import { FetchClient } from "@foundatiofx/fetchclient";
+import { setAccessTokenFunc } from "@foundatiofx/fetchclient";
 
-const client = new FetchClient();
-client.use(async (ctx, next) => {
-  console.log("→", ctx.request.url);
-  await next();
-  console.log("←", ctx.response?.status);
-});
+setAccessTokenFunc(() => localStorage.getItem("token"));
 
-await client.getJSON("https://api.example.com/users");
+// All requests automatically include Authorization: Bearer <token>
 ```
 
 ## Complete Setup Example
 
-Here's a typical app configuration using the functional API:
-
 ```ts
-// app-init.ts - Configure once
+// app-init.ts - Configure once at startup
 import {
-  setBaseUrl,
   setAccessTokenFunc,
+  setBaseUrl,
+  useCircuitBreaker,
   useMiddleware,
   usePerDomainRateLimit,
-  useCircuitBreaker,
 } from "@foundatiofx/fetchclient";
 
 setBaseUrl("https://api.example.com");
@@ -151,6 +92,14 @@ useCircuitBreaker({ failureThreshold: 5, openDurationMs: 30000 });
 // anywhere.ts - Use the API
 import { getJSON, postJSON } from "@foundatiofx/fetchclient";
 
-// All configuration is automatically applied
 const { data } = await getJSON<User[]>("/users");
 ```
+
+## Next Steps
+
+- [Caching](/guide/caching) - Cache responses with TTL and tags
+- [Middleware](/guide/middleware) - Intercept and modify requests
+- [Rate Limiting](/guide/rate-limiting) - Prevent API overload
+- [Circuit Breaker](/guide/circuit-breaker) - Handle service failures
+- [Error Handling](/guide/error-handling) - Handle errors gracefully
+- [Testing](/guide/testing) - Mock HTTP in your tests

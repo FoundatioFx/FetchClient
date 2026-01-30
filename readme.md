@@ -14,7 +14,7 @@ handling.
 
 - **Typed JSON helpers** - `getJSON`, `postJSON`, `putJSON`, `patchJSON`,
   `deleteJSON`
-- **Two API styles** - Functional (no classes) or class-based - your choice
+- **Two API styles** - Functional or class-based - your choice
 - **Response caching** - TTL-based caching with tags for grouped invalidation
 - **Middleware** - Intercept requests/responses for logging, auth, transforms
 - **Rate limiting** - Per-domain rate limits with automatic header detection
@@ -33,15 +33,13 @@ npm install @foundatiofx/fetchclient
 
 FetchClient works two ways - pick whichever style you prefer:
 
-### Functional API (no classes)
+### Functional API
 
 ```ts
 import { getJSON, postJSON, setBaseUrl } from "@foundatiofx/fetchclient";
 
-// Optional: configure once at startup
 setBaseUrl("https://api.example.com");
 
-// Use simple functions anywhere
 const { data: users } = await getJSON<User[]>("/users");
 const { data: created } = await postJSON<User>("/users", { name: "Alice" });
 ```
@@ -68,9 +66,6 @@ import { FetchClient } from "@foundatiofx/fetchclient";
 const client = new FetchClient({ baseUrl: "https://api.example.com" });
 const { data } = await client.getJSON<User[]>("/users");
 ```
-
-All styles share the same configuration - the functional API wraps a
-[default provider](https://fetchclient.foundatio.dev/guide/provider#default-provider).
 
 ## Caching
 
@@ -112,12 +107,11 @@ usePerDomainRateLimit({
 ## Circuit Breaker
 
 ```ts
-import { FetchClientProvider } from "@foundatiofx/fetchclient";
+import { useCircuitBreaker } from "@foundatiofx/fetchclient";
 
-const provider = new FetchClientProvider();
-provider.useCircuitBreaker({
-  failureThreshold: 5, // Open after 5 failures
-  openDurationMs: 30000, // Stay open for 30 seconds
+useCircuitBreaker({
+  failureThreshold: 5,
+  openDurationMs: 30000,
 });
 
 // When API fails repeatedly, circuit opens
@@ -133,10 +127,9 @@ import { MockRegistry } from "@foundatiofx/fetchclient/mocks";
 const mocks = new MockRegistry();
 mocks.onGet("/api/users").reply(200, [{ id: 1, name: "Alice" }]);
 
-const provider = new FetchClientProvider();
-mocks.install(provider);
+const client = new FetchClient();
+mocks.install(client);
 
-const client = provider.getFetchClient();
 const { data } = await client.getJSON("/api/users");
 // data = [{ id: 1, name: "Alice" }]
 ```

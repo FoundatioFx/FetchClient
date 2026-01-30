@@ -1,4 +1,5 @@
 import type { FetchClient } from "./FetchClient.ts";
+import type { FetchClientCache } from "./FetchClientCache.ts";
 import type { FetchClientMiddleware } from "./FetchClientMiddleware.ts";
 import type { FetchClientOptions } from "./FetchClientOptions.ts";
 import {
@@ -110,6 +111,14 @@ export function getCurrentProvider(): FetchClientProvider {
   }
 
   return getCurrentProviderFunc() ?? defaultProvider;
+}
+
+/**
+ * Gets the cache from the current provider.
+ * @returns The FetchClientCache instance.
+ */
+export function getCache(): FetchClientCache {
+  return getCurrentProvider().cache;
 }
 
 /**

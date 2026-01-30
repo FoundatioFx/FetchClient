@@ -53,7 +53,7 @@ export default withMermaid(defineConfig({
               link: "/guide/what-is-fetchclient",
             },
             { text: "Getting Started", link: "/guide/getting-started" },
-            { text: "Provider", link: "/guide/provider" },
+            { text: "Configuration", link: "/guide/configuration" },
           ],
         },
         {

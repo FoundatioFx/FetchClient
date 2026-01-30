@@ -65,7 +65,9 @@ setBaseUrl("https://api.example.com");
 
 const client = getFetchClient();
 const { data: users } = await client.getJSON<User[]>("/users");
-const { data: created } = await client.postJSON<User>("/users", { name: "Alice" });
+const { data: created } = await client.postJSON<User>("/users", {
+  name: "Alice",
+});
 ```
 
 ### Class-Based API
@@ -87,7 +89,7 @@ const { data } = await getJSON<User>("/api/users/1", {
 });
 
 // Invalidate all user cache entries
-getCurrentProvider().cache.deleteByTag("users");
+getCache().deleteByTag("users");
 ```
 
 ## Middleware
@@ -105,7 +107,10 @@ useMiddleware(async (ctx, next) => {
 ## Rate Limiting & Circuit Breaker
 
 ```ts
-import { usePerDomainRateLimit, useCircuitBreaker } from "@foundatiofx/fetchclient";
+import {
+  useCircuitBreaker,
+  usePerDomainRateLimit,
+} from "@foundatiofx/fetchclient";
 
 // Prevent overwhelming APIs
 usePerDomainRateLimit({ maxRequests: 100, windowSeconds: 60 });
