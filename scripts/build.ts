@@ -3,8 +3,21 @@ import { build, emptyDir } from "@deno/dnt";
 await emptyDir("./npm");
 
 await build({
-  entryPoints: ["./mod.ts"],
+  entryPoints: [
+    "./mod.ts",
+    {
+      name: "./mocks",
+      path: "./src/mocks/mod.ts",
+    },
+  ],
   outDir: "./npm",
+  filterDiagnostic(diagnostic) {
+    // Ignore diagnostics from docs folder
+    if (diagnostic.file?.fileName.includes("/docs/")) {
+      return false;
+    }
+    return true;
+  },
   shims: {
     deno: true,
   },
@@ -13,6 +26,8 @@ await build({
   scriptModule: "cjs",
   typeCheck: false,
   test: true,
+  rootTestDir: "./src",
+  testPattern: "**/*.test.ts",
 
   importMap: "deno.json",
 

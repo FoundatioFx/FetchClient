@@ -3,15 +3,16 @@
   "specifiers": {
     "jsr:@david/code-block-writer@^13.0.3": "13.0.3",
     "jsr:@deno/dnt@~0.42.3": "0.42.3",
-    "jsr:@std/assert@^1.0.16": "1.0.16",
+    "jsr:@std/assert@^1.0.17": "1.0.17",
     "jsr:@std/fmt@1": "1.0.8",
     "jsr:@std/fs@1": "1.0.20",
     "jsr:@std/internal@^1.0.12": "1.0.12",
-    "jsr:@std/path@1": "1.1.3",
-    "jsr:@std/path@^1.1.3": "1.1.3",
+    "jsr:@std/path@1": "1.1.4",
+    "jsr:@std/path@^1.1.3": "1.1.4",
+    "jsr:@std/path@^1.1.4": "1.1.4",
     "jsr:@ts-morph/bootstrap@0.27": "0.27.0",
     "jsr:@ts-morph/common@0.27": "0.27.0",
-    "npm:zod@^4.1.13": "4.1.13"
+    "npm:zod@^4.3.6": "4.3.6"
   },
   "jsr": {
     "@david/code-block-writer@13.0.3": {
@@ -27,8 +28,8 @@
         "jsr:@ts-morph/bootstrap"
       ]
     },
-    "@std/assert@1.0.16": {
-      "integrity": "6a7272ed1eaa77defe76e5ff63ca705d9c495077e2d5fd0126d2b53fc5bd6532",
+    "@std/assert@1.0.17": {
+      "integrity": "df5ebfffe77c03b3fa1401e11c762cc8f603d51021c56c4d15a8c7ab45e90dbe",
       "dependencies": [
         "jsr:@std/internal"
       ]
@@ -46,8 +47,8 @@
     "@std/internal@1.0.12": {
       "integrity": "972a634fd5bc34b242024402972cd5143eac68d8dffaca5eaa4dba30ce17b027"
     },
-    "@std/path@1.1.3": {
-      "integrity": "b015962d82a5e6daea980c32b82d2c40142149639968549c649031a230b1afb3",
+    "@std/path@1.1.4": {
+      "integrity": "1d2d43f39efb1b42f0b1882a25486647cb851481862dc7313390b2bb044314b5",
       "dependencies": [
         "jsr:@std/internal"
       ]
@@ -67,8 +68,8 @@
     }
   },
   "npm": {
-    "zod@4.1.13": {
-      "integrity": "sha512-AvvthqfqrAhNH9dnfmrfKzX5upOdjUVJYFqNSlkmGf64gRaTzlPwz99IHYnVs28qYAybvAlBV+H7pn0saFY4Ig=="
+    "zod@4.3.6": {
+      "integrity": "sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg=="
     }
   },
   "remote": {
@@ -89,9 +90,9 @@
   "workspace": {
     "dependencies": [
       "jsr:@deno/dnt@~0.42.3",
-      "jsr:@std/assert@^1.0.16",
-      "jsr:@std/path@^1.1.3",
-      "npm:zod@^4.1.13"
+      "jsr:@std/assert@^1.0.17",
+      "jsr:@std/path@^1.1.4",
+      "npm:zod@^4.3.6"
     ]
   }
 }

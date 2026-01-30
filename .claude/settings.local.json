@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(deno test:*)",
+      "Bash(deno task:*)",
+      "Bash(for file in src/tests/*.test.ts)",
+      "Bash(do sed -i 's|../testing/|../mocks/|g' \"$file\")",
+      "Bash(done)",
+      "Bash(powershell -Command:*)",
+      "Bash(findstr:*)",
+      "Bash(node -e:*)",
+      "Bash(deno eval:*)",
+      "Bash(deno run:*)"
+    ]
+  }
+}

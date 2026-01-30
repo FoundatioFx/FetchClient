@@ -195,3 +195,101 @@ client.loading.on((isLoading) => {
 console.log(client.isLoading);
 console.log(client.requestCount);
 ```
+
+## Testing with MockRegistry
+
+Use `MockRegistry` to mock HTTP responses in tests without making real network requests:
+
+```ts
+import { FetchClientProvider } from "@foundatiofx/fetchclient";
+import { MockRegistry } from "@foundatiofx/fetchclient/mocks";
+
+// Create mock registry and define responses
+const mocks = new MockRegistry();
+mocks.onGet("/api/users").reply(200, [{ id: 1, name: "Alice" }]);
+mocks.onPost("/api/users").reply(201, { id: 2, name: "Bob" });
+
+// Install on provider
+const provider = new FetchClientProvider();
+provider.setBaseUrl("https://api.example.com");
+mocks.install(provider);
+
+// Use client as normal - requests are mocked
+const client = provider.getFetchClient();
+const response = await client.getJSON("/api/users");
+// response.data = [{ id: 1, name: "Alice" }]
+
+// Restore original fetch when done
+mocks.restore();
+```
+
+### Standalone Fetch Replacement
+
+Use `mocks.fetch` to get the mock fetch function directly, without installing on a provider. This is useful for mocking fetch in any context:
+
+```ts
+import { MockRegistry } from "@foundatiofx/fetchclient/mocks";
+
+const mocks = new MockRegistry();
+mocks.onGet("/api/data").reply(200, { value: 42 });
+
+// Use directly as fetch
+const response = await mocks.fetch("https://api.example.com/api/data");
+const data = await response.json(); // { value: 42 }
+
+// Or pass to any library expecting a fetch function
+const client = new SomeHttpClient({ fetch: mocks.fetch });
+
+// History is still recorded
+console.log(mocks.history.all.length); // 1
+```
+
+### One-time Mocks
+
+```ts
+mocks.onPost("/api/users").replyOnce(201, { id: 1 });
+
+await client.postJSON("/api/users", {}); // Returns 201
+await client.postJSON("/api/users", {}); // Falls through to real fetch
+```
+
+### Error Simulation
+
+```ts
+mocks.onGet("/api/flaky").networkError("Connection refused");
+mocks.onGet("/api/slow").timeout();
+```
+
+### Regex URL Matching
+
+```ts
+mocks.onGet(/\/api\/users\/\d+/).reply(200, { id: 1, name: "User" });
+
+await client.getJSON("/api/users/123"); // Matches
+await client.getJSON("/api/users/456"); // Matches
+```
+
+### Request History
+
+```ts
+await client.postJSON("/api/users", { name: "Test" });
+
+console.log(mocks.history.post.length); // 1
+console.log(mocks.history.all.length);  // 1
+```
+
+### Test Setup Pattern
+
+```ts
+const provider = new FetchClientProvider();
+const mocks = new MockRegistry();
+
+beforeEach(() => {
+  mocks.install(provider);
+});
+
+afterEach(() => {
+  mocks.restore();
+  mocks.reset(); // Clear mocks and history
+});
+```

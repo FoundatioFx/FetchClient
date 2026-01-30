@@ -1,17 +1,17 @@
 import { assertEquals, assertRejects } from "@std/assert";
-import { FetchClientProvider } from "./FetchClientProvider.ts";
+import { FetchClientProvider } from "../FetchClientProvider.ts";
 import {
   RateLimitError,
   type RateLimitMiddlewareOptions,
-} from "./RateLimitMiddleware.ts";
-import type { FetchClientResponse } from "./FetchClientResponse.ts";
+} from "../RateLimitMiddleware.ts";
+import type { FetchClientResponse } from "../FetchClientResponse.ts";
 import {
   buildRateLimitHeader,
   buildRateLimitPolicyHeader,
   parseRateLimitHeader,
   parseRateLimitPolicyHeader,
   RateLimiter,
-} from "./RateLimiter.ts";
+} from "../RateLimiter.ts";
 
 // Mock fetch function for testing
 const createMockFetch = (response: {
