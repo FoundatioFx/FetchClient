@@ -13,7 +13,7 @@ import { MockRegistry } from "@foundatiofx/fetchclient/mocks";
 ## Basic Usage
 
 ```ts
-import { FetchClientProvider } from "@foundatiofx/fetchclient";
+import { FetchClient } from "@foundatiofx/fetchclient";
 import { MockRegistry } from "@foundatiofx/fetchclient/mocks";
 
 // Create mock registry
@@ -25,13 +25,11 @@ mocks.onGet("/api/users").reply(200, [
   { id: 2, name: "Bob" },
 ]);
 
-// Install on provider
-const provider = new FetchClientProvider();
-provider.setBaseUrl("https://api.example.com");
-mocks.install(provider);
+// Install on client
+const client = new FetchClient({ baseUrl: "https://api.example.com" });
+mocks.install(client);
 
 // Make requests - they're mocked!
-const client = provider.getFetchClient();
 const response = await client.getJSON("/api/users");
 // response.data = [{ id: 1, name: "Alice" }, { id: 2, name: "Bob" }]
 
@@ -106,8 +104,7 @@ mocks.onDelete("/api/users/1").reply(204);
 Use `replyOnce` for mocks that should only match once:
 
 ```ts
-mocks.onPost("/api/users")
-  .replyOnce(201, { id: 1 });
+mocks.onPost("/api/users").replyOnce(201, { id: 1 });
 
 await client.postJSON("/api/users", {}); // Returns 201, { id: 1 }
 await client.postJSON("/api/users", {}); // Falls through to real fetch (or no match)
@@ -142,12 +139,12 @@ mocks.onGet("/api/data")
 Match based on request headers:
 
 ```ts
-mocks.onGet("/api/data")
-  .withHeaders({ "Authorization": "Bearer token123" })
+mocks
+  .onGet("/api/data")
+  .withHeaders({ Authorization: "Bearer token123" })
   .reply(200, { authorized: true });
 
-mocks.onGet("/api/data")
-  .reply(401, { error: "Unauthorized" });
+mocks.onGet("/api/data").reply(401, { error: "Unauthorized" });
 ```
 
 ## Request History
@@ -159,25 +156,25 @@ const mocks = new MockRegistry();
 mocks.onGet("/api/users").reply(200, []);
 mocks.onPost("/api/users").reply(201, {});
 
-mocks.install(provider);
+mocks.install(client);
 
 await client.getJSON("/api/users");
 await client.postJSON("/api/users", { name: "Alice" });
 
 // Check history
-console.log(mocks.history.all.length);  // 2
-console.log(mocks.history.get.length);  // 1
+console.log(mocks.history.all.length); // 2
+console.log(mocks.history.get.length); // 1
 console.log(mocks.history.post.length); // 1
 
 // Access request details
 const postRequest = mocks.history.post[0];
-console.log(postRequest.url);    // "https://example.com/api/users"
+console.log(postRequest.url); // "https://example.com/api/users"
 console.log(postRequest.method); // "POST"
 ```
 
 ## Standalone Fetch Replacement
 
-Use `mocks.fetch` directly without installing on a provider:
+Use `mocks.fetch` directly without installing on a client:
 
 ```ts
 const mocks = new MockRegistry();
@@ -211,16 +208,13 @@ mocks.resetHistory();
 
 ```ts
 describe("User API", () => {
-  let provider: FetchClientProvider;
   let client: FetchClient;
   let mocks: MockRegistry;
 
   beforeEach(() => {
-    provider = new FetchClientProvider();
-    provider.setBaseUrl("https://api.example.com");
+    client = new FetchClient({ baseUrl: "https://api.example.com" });
     mocks = new MockRegistry();
-    mocks.install(provider);
-    client = provider.getFetchClient();
+    mocks.install(client);
   });
 
   afterEach(() => {
@@ -253,11 +247,13 @@ function setupMocks() {
 }
 
 describe("App", () => {
+  let client: FetchClient;
   let mocks: MockRegistry;
 
   beforeEach(() => {
+    client = new FetchClient({ baseUrl: "https://api.example.com" });
     mocks = setupMocks();
-    mocks.install(provider);
+    mocks.install(client);
   });
 
   afterEach(() => {
@@ -318,8 +314,9 @@ it("should handle 404", async () => {
 it("should handle network errors", async () => {
   mocks.onGet("/api/data").networkError("Connection refused");
 
-  await expect(client.getJSON("/api/data"))
-    .rejects.toThrow("Connection refused");
+  await expect(client.getJSON("/api/data")).rejects.toThrow(
+    "Connection refused",
+  );
 });
 
 it("should handle timeouts", async () => {
@@ -334,14 +331,12 @@ it("should handle timeouts", async () => {
 
 ```ts
 it("should open circuit after failures", async () => {
-  const provider = new FetchClientProvider();
-  provider.useCircuitBreaker({ failureThreshold: 3 });
+  const client = new FetchClient();
+  client.useCircuitBreaker({ failureThreshold: 3 });
 
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(500, { error: "Server error" });
-  mocks.install(provider);
-
-  const client = provider.getFetchClient();
+  mocks.install(client);
 
   // Trigger failures
   for (let i = 0; i < 3; i++) {
@@ -361,17 +356,16 @@ it("should open circuit after failures", async () => {
 
 ```ts
 import { assertEquals } from "@std/assert";
-import { FetchClientProvider } from "@foundatiofx/fetchclient";
+import { FetchClient } from "@foundatiofx/fetchclient";
 import { MockRegistry } from "@foundatiofx/fetchclient/mocks";
 
 Deno.test("fetches users", async () => {
-  const provider = new FetchClientProvider();
+  const client = new FetchClient();
   const mocks = new MockRegistry();
 
   mocks.onGet("/api/users").reply(200, [{ id: 1 }]);
-  mocks.install(provider);
+  mocks.install(client);
 
-  const client = provider.getFetchClient();
   const response = await client.getJSON("/api/users");
 
   assertEquals(response.data, [{ id: 1 }]);
