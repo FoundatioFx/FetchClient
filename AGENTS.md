@@ -44,7 +44,8 @@ concrete, and specific to FetchClient.
 - Timeout/abort: merges `AbortSignal.timeout(options.timeout)` with any provided
   `signal`.
 - Caching: GET + `cacheKey` reads/writes via `FetchClientCache` (default TTL 60s
-  unless `cacheDuration` provided).
+  unless `cacheDuration` provided). Optional `cacheTags` enable tag-based
+  invalidation via `cache.deleteByTag(tag)`.
 - Middleware order: `[provider.middleware, client.use(...), internal fetch]`.
 - Loading events: instance and provider expose `loading` via counters.
 
@@ -66,6 +67,9 @@ concrete, and specific to FetchClient.
   `usePerDomainRateLimit(...)`
 - GET cache:
   `client.getJSON(url, { cacheKey: ["todos","1"], cacheDuration: 60000 })`
+- Cache with tags:
+  `client.getJSON(url, { cacheKey: ["todos","1"], cacheTags: ["todos", "user:1"] })`
+- Invalidate by tag: `client.cache.deleteByTag("todos")`
 - Tolerate 404: `expectedStatusCodes: [404]` or handle via `errorCallback`
 
 ## 6) Conventions & gotchas

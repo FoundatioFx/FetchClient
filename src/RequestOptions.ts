@@ -1,4 +1,4 @@
-import type { CacheKey } from "./FetchClientCache.ts";
+import type { CacheKey, CacheTag } from "./FetchClientCache.ts";
 import type { FetchClientResponse } from "./FetchClientResponse.ts";
 
 /**
@@ -72,4 +72,10 @@ export type GetRequestOptions = RequestOptions & {
    * The duration for which the response should be cached, in milliseconds.
    */
   cacheDuration?: number;
+
+  /**
+   * Tags for grouping and invalidating cache entries. Multiple entries can share
+   * the same tag, allowing bulk invalidation via `cache.deleteByTag(tag)`.
+   */
+  cacheTags?: CacheTag[];
 };

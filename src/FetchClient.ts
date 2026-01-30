@@ -451,6 +451,7 @@ export class FetchClient {
             getOptions.cacheKey,
             ctx.response,
             getOptions.cacheDuration,
+            getOptions.cacheTags,
           );
         }
       } catch (error) {

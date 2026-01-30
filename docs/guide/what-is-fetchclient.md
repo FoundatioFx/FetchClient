@@ -5,7 +5,7 @@ provides:
 
 - Typed JSON helpers: `getJSON`, `postJSON`, etc.
 - A `FetchClient` class with middleware support
-- Caching with TTL and programmatic invalidation
+- Caching with TTL, tagging, and programmatic invalidation
 - Rate limiting per domain
 - Timeouts and AbortSignal support
 - Helpful error handling with Problem Details

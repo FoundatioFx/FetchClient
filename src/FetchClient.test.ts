@@ -1136,6 +1136,245 @@ Deno.test("can post FormData multipart", async () => {
   assert(files.binary && typeof files.binary === "string");
 });
 
+Deno.test("can getJSON with cache tags", async () => {
+  const provider = new FetchClientProvider();
+  let fetchCount = 0;
+  const fakeFetch = (input: RequestInfo | URL): Promise<Response> =>
+    new Promise((resolve) => {
+      const url = new URL(input instanceof Request ? input.url : input.toString());
+      const id = url.pathname.split("/").pop();
+      const data = JSON.stringify({
+        userId: 1,
+        id: parseInt(id || "1"),
+        title: `Todo ${id}`,
+        completed: false,
+      });
+      fetchCount++;
+      resolve(new Response(data));
+    });
+
+  provider.fetch = fakeFetch;
+  const client = provider.getFetchClient();
+
+  // Cache multiple entries with shared tags
+  await client.getJSON<Todo>(
+    "https://jsonplaceholder.typicode.com/todos/1",
+    {
+      cacheKey: ["todos", "1"],
+      cacheTags: ["todos", "user:1"],
+    },
+  );
+
+  await client.getJSON<Todo>(
+    "https://jsonplaceholder.typicode.com/todos/2",
+    {
+      cacheKey: ["todos", "2"],
+      cacheTags: ["todos", "user:1"],
+    },
+  );
+
+  await client.getJSON<Todo>(
+    "https://jsonplaceholder.typicode.com/todos/3",
+    {
+      cacheKey: ["todos", "3"],
+      cacheTags: ["todos", "user:2"],
+    },
+  );
+
+  assertEquals(fetchCount, 3);
+  assert(provider.cache.has(["todos", "1"]));
+  assert(provider.cache.has(["todos", "2"]));
+  assert(provider.cache.has(["todos", "3"]));
+
+  // Verify tags are tracked
+  const tags = provider.cache.getTags();
+  assert(tags.includes("todos"));
+  assert(tags.includes("user:1"));
+  assert(tags.includes("user:2"));
+
+  // Verify entry tags
+  const entry1Tags = provider.cache.getEntryTags(["todos", "1"]);
+  assert(entry1Tags.includes("todos"));
+  assert(entry1Tags.includes("user:1"));
+
+  // Delete by tag - should remove entries for user:1
+  const deletedCount = provider.cache.deleteByTag("user:1");
+  assertEquals(deletedCount, 2);
+  assertFalse(provider.cache.has(["todos", "1"]));
+  assertFalse(provider.cache.has(["todos", "2"]));
+  assert(provider.cache.has(["todos", "3"]));
+
+  // Re-fetch the deleted entries
+  await client.getJSON<Todo>(
+    "https://jsonplaceholder.typicode.com/todos/1",
+    {
+      cacheKey: ["todos", "1"],
+      cacheTags: ["todos", "user:1"],
+    },
+  );
+
+  assertEquals(fetchCount, 4);
+  assert(provider.cache.has(["todos", "1"]));
+
+  // Delete all by "todos" tag - should remove all remaining
+  const deletedAll = provider.cache.deleteByTag("todos");
+  assertEquals(deletedAll, 2);
+  assertFalse(provider.cache.has(["todos", "1"]));
+  assertFalse(provider.cache.has(["todos", "3"]));
+});
+
+Deno.test("cache tags are cleaned up on expiration", async () => {
+  const provider = new FetchClientProvider();
+  const fakeFetch = (): Promise<Response> =>
+    new Promise((resolve) => {
+      const data = JSON.stringify({
+        userId: 1,
+        id: 1,
+        title: "Test",
+        completed: false,
+      });
+      resolve(new Response(data));
+    });
+
+  provider.fetch = fakeFetch;
+  const client = provider.getFetchClient();
+
+  await client.getJSON<Todo>(
+    "https://jsonplaceholder.typicode.com/todos/1",
+    {
+      cacheKey: ["todos", "1"],
+      cacheTags: ["expiring-tag"],
+      cacheDuration: 10,
+    },
+  );
+
+  assert(provider.cache.has(["todos", "1"]));
+  let tags = provider.cache.getTags();
+  assert(tags.includes("expiring-tag"));
+
+  // Wait for expiration
+  await delay(50);
+
+  // Access the cache to trigger expiration cleanup
+  const result = provider.cache.get(["todos", "1"]);
+  assertEquals(result, null);
+
+  // Tag should be cleaned up
+  tags = provider.cache.getTags();
+  assertFalse(tags.includes("expiring-tag"));
+});
+
+Deno.test("cache tags are cleaned up on delete", async () => {
+  const provider = new FetchClientProvider();
+  const fakeFetch = (): Promise<Response> =>
+    new Promise((resolve) => {
+      const data = JSON.stringify({
+        userId: 1,
+        id: 1,
+        title: "Test",
+        completed: false,
+      });
+      resolve(new Response(data));
+    });
+
+  provider.fetch = fakeFetch;
+  const client = provider.getFetchClient();
+
+  await client.getJSON<Todo>(
+    "https://jsonplaceholder.typicode.com/todos/1",
+    {
+      cacheKey: ["todos", "1"],
+      cacheTags: ["delete-tag"],
+    },
+  );
+
+  assert(provider.cache.has(["todos", "1"]));
+  let tags = provider.cache.getTags();
+  assert(tags.includes("delete-tag"));
+
+  // Delete the entry
+  provider.cache.delete(["todos", "1"]);
+
+  // Tag should be cleaned up
+  tags = provider.cache.getTags();
+  assertFalse(tags.includes("delete-tag"));
+});
+
+Deno.test("cache tags work with deleteAll prefix", async () => {
+  const provider = new FetchClientProvider();
+  let fetchCount = 0;
+  const fakeFetch = (input: RequestInfo | URL): Promise<Response> =>
+    new Promise((resolve) => {
+      const url = new URL(input instanceof Request ? input.url : input.toString());
+      const id = url.pathname.split("/").pop();
+      const data = JSON.stringify({ id: parseInt(id || "1") });
+      fetchCount++;
+      resolve(new Response(data));
+    });
+
+  provider.fetch = fakeFetch;
+  const client = provider.getFetchClient();
+
+  await client.getJSON("https://example.com/users/1", {
+    cacheKey: ["users", "1"],
+    cacheTags: ["users"],
+  });
+
+  await client.getJSON("https://example.com/users/2", {
+    cacheKey: ["users", "2"],
+    cacheTags: ["users"],
+  });
+
+  await client.getJSON("https://example.com/posts/1", {
+    cacheKey: ["posts", "1"],
+    cacheTags: ["posts"],
+  });
+
+  assertEquals(fetchCount, 3);
+  let tags = provider.cache.getTags();
+  assert(tags.includes("users"));
+  assert(tags.includes("posts"));
+
+  // Delete all users by prefix
+  const deleted = provider.cache.deleteAll(["users"]);
+  assertEquals(deleted, 2);
+
+  // Users tag should be cleaned up, posts tag should remain
+  tags = provider.cache.getTags();
+  assertFalse(tags.includes("users"));
+  assert(tags.includes("posts"));
+});
+
+Deno.test("cache clear removes all tags", async () => {
+  const provider = new FetchClientProvider();
+  const fakeFetch = (): Promise<Response> =>
+    new Promise((resolve) => {
+      resolve(new Response(JSON.stringify({ id: 1 })));
+    });
+
+  provider.fetch = fakeFetch;
+  const client = provider.getFetchClient();
+
+  await client.getJSON("https://example.com/test", {
+    cacheKey: "test",
+    cacheTags: ["tag1", "tag2"],
+  });
+
+  let tags = provider.cache.getTags();
+  assertEquals(tags.length, 2);
+
+  provider.cache.clear();
+
+  tags = provider.cache.getTags();
+  assertEquals(tags.length, 0);
+});
+
+Deno.test("deleteByTag returns 0 for non-existent tag", () => {
+  const provider = new FetchClientProvider();
+  const deleted = provider.cache.deleteByTag("non-existent");
+  assertEquals(deleted, 0);
+});
+
 function delay(time: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, time));
 }

@@ -54,7 +54,50 @@ const response = await client.getJSON<Todo>(
 
 // Invalidate programmatically
 client.cache.delete(["todos", "1"]);
+
+// Invalidate by prefix
+client.cache.deleteAll(["todos"]); // Removes all entries starting with "todos:"
 ```
+
+## Cache Tagging
+
+Use cache tags to group related cache entries and invalidate them together:
+
+```ts
+import { FetchClient } from "@foundatiofx/fetchclient";
+
+const client = new FetchClient();
+
+// Cache entries with shared tags
+await client.getJSON("/api/users/1", {
+  cacheKey: ["users", "1"],
+  cacheTags: ["users", "user-data"],
+});
+
+await client.getJSON("/api/users/2", {
+  cacheKey: ["users", "2"],
+  cacheTags: ["users", "user-data"],
+});
+
+await client.getJSON("/api/posts/1", {
+  cacheKey: ["posts", "1"],
+  cacheTags: ["posts", "user-data"],
+});
+
+// Invalidate all user entries
+client.cache.deleteByTag("users"); // Removes users/1 and users/2
+
+// Invalidate all user-related data (users and posts)
+client.cache.deleteByTag("user-data"); // Removes all three entries
+
+// Check available tags
+const tags = client.cache.getTags(); // ["posts"] after deleteByTag("users")
+
+// Get tags for a specific entry
+const entryTags = client.cache.getEntryTags(["posts", "1"]); // ["posts", "user-data"]
+```
+
+Tags are automatically cleaned up when entries expire or are deleted.
 
 ## Rate Limiting
 
