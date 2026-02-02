@@ -107,12 +107,12 @@ export const middleware = {
  * // Configure middleware
  * fc.use(fc.middleware.retry({ limit: 3 }));
  *
- * // Use base methods with .json<T>() helper
- * const user = await fc.get("/api/user/1").json<User>();
+ * // Use JSON methods (recommended)
+ * const { data: user } = await fc.getJSON<User>("/api/user/1");
+ * const { data: created } = await fc.postJSON<User>("/api/users", { name: "Alice" });
  *
- * // Or use JSON methods with response.data
- * const response = await fc.getJSON<User>("/api/user/1");
- * console.log(response.data);
+ * // Or use fluent API for other response types
+ * const html = await fc.get("/page").text();
  * ```
  */
 const fetchClient = {

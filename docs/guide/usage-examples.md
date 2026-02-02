@@ -2,6 +2,83 @@
 
 This page consolidates common examples from the README.
 
+## Default Export
+
+The simplest way to use FetchClient is with the default export:
+
+```ts
+import fc from "@foundatiofx/fetchclient";
+
+// GET with typed JSON response
+const { data: user } = await fc.getJSON<User>("/api/users/1");
+
+// POST with body
+const { data: created } = await fc.postJSON<User>("/api/users", { name: "Alice" });
+
+// PUT and PATCH
+const { data: updated } = await fc.putJSON<User>("/api/users/1", { name: "Bob" });
+const { data: patched } = await fc.patchJSON<User>("/api/users/1", { name: "Charlie" });
+
+// DELETE
+const { data: deleted } = await fc.deleteJSON<User>("/api/users/1");
+
+// Full response access (includes status, headers, problem details, etc.)
+const response = await fc.getJSON<User[]>("/api/users");
+console.log(response.status, response.ok, response.data);
+```
+
+### Fluent API Alternative
+
+For cases where you need different response types, use the fluent API:
+
+```ts
+import fc from "@foundatiofx/fetchclient";
+
+// Text response
+const html = await fc.get("/page").text();
+
+// Binary responses
+const file = await fc.get("/download").blob();
+const buffer = await fc.get("/binary").arrayBuffer();
+
+// JSON with fluent API (alternative to getJSON)
+const user = await fc.get("/api/users/1").json<User>();
+```
+
+### Middleware with Default Export
+
+Configure middleware using `fc.use()` with built-in factories:
+
+```ts
+import fc from "@foundatiofx/fetchclient";
+
+// Retry failed requests
+fc.use(fc.middleware.retry({ limit: 3 }));
+
+// Rate limiting
+fc.use(fc.middleware.rateLimit({ maxRequests: 100, windowSeconds: 60 }));
+fc.use(fc.middleware.perDomainRateLimit({ maxRequests: 50, windowSeconds: 60 }));
+
+// Circuit breaker
+fc.use(fc.middleware.circuitBreaker({ failureThreshold: 5 }));
+fc.use(fc.middleware.perDomainCircuitBreaker({ failureThreshold: 3 }));
+
+// Custom middleware
+fc.use(async (ctx, next) => {
+  console.log("Request:", ctx.request.url);
+  await next();
+  console.log("Response:", ctx.response?.status);
+});
+```
+
+### Available Middleware Factories
+
+- `fc.middleware.retry(options)` - Retry failed requests with exponential backoff
+- `fc.middleware.rateLimit(options)` - Global rate limiting
+- `fc.middleware.perDomainRateLimit(options)` - Per-domain rate limiting
+- `fc.middleware.circuitBreaker(options)` - Global circuit breaker
+- `fc.middleware.perDomainCircuitBreaker(options)` - Per-domain circuit breaker
+
 ## Model Validator
 
 ```ts

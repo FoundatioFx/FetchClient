@@ -8,12 +8,29 @@ npm install @foundatiofx/fetchclient
 
 ## Quick Usage
 
-FetchClient offers two styles: **functional** and **class-based**. Choose
-whichever you prefer - both have full access to all features.
+FetchClient offers multiple styles. Choose whichever you prefer - all have full access to all features.
 
-### Functional Style (Recommended)
+### Default Export (Recommended)
 
-Use simple functions:
+The simplest way to use FetchClient:
+
+```ts
+import fc from "@foundatiofx/fetchclient";
+
+// GET with typed JSON response
+const { data: user } = await fc.getJSON<User>("/api/users/1");
+
+// POST with JSON body
+const { data: created } = await fc.postJSON<User>("/users", { name: "Alice" });
+
+// Full response access (status, headers, problem details)
+const response = await fc.getJSON<User[]>("/users");
+console.log(response.status, response.ok, response.data);
+```
+
+### Functional Style
+
+Use named function exports:
 
 ```ts
 import { getJSON, postJSON, setBaseUrl } from "@foundatiofx/fetchclient";
@@ -26,14 +43,14 @@ const { data: users } = await getJSON<User[]>("/users");
 const { data: created } = await postJSON<User>("/users", { name: "Alice" });
 ```
 
-Or use `getFetchClient()` if you prefer working with a client instance:
+Or use `useFetchClient()` if you prefer working with a client instance:
 
 ```ts
-import { getFetchClient, setBaseUrl } from "@foundatiofx/fetchclient";
+import { useFetchClient, setBaseUrl } from "@foundatiofx/fetchclient";
 
 setBaseUrl("https://api.example.com");
 
-const client = getFetchClient();
+const client = useFetchClient();
 const { data: users } = await client.getJSON<User[]>("/users");
 const { data: created } = await client.postJSON<User>("/users", {
   name: "Alice",
@@ -41,6 +58,19 @@ const { data: created } = await client.postJSON<User>("/users", {
 ```
 
 ## Adding Middleware
+
+Use the default export for convenient middleware setup:
+
+```ts
+import fc from "@foundatiofx/fetchclient";
+
+// Built-in middleware factories
+fc.use(fc.middleware.retry({ limit: 3 }));
+fc.use(fc.middleware.rateLimit({ maxRequests: 100, windowSeconds: 60 }));
+fc.use(fc.middleware.circuitBreaker({ failureThreshold: 5 }));
+```
+
+Or use custom middleware:
 
 ```ts
 import { useMiddleware } from "@foundatiofx/fetchclient";
@@ -66,33 +96,38 @@ setAccessTokenFunc(() => localStorage.getItem("token"));
 
 ```ts
 // app-init.ts - Configure once at startup
-import {
-  setAccessTokenFunc,
-  setBaseUrl,
-  useCircuitBreaker,
-  useMiddleware,
-  usePerDomainRateLimit,
-} from "@foundatiofx/fetchclient";
+import fc from "@foundatiofx/fetchclient";
+import { setAccessTokenFunc, setBaseUrl } from "@foundatiofx/fetchclient";
 
 setBaseUrl("https://api.example.com");
 
 setAccessTokenFunc(() => localStorage.getItem("token"));
 
-useMiddleware(async (ctx, next) => {
+// Add middleware using fc.use() with built-in factories
+fc.use(fc.middleware.retry({ limit: 3 }));
+fc.use(fc.middleware.perDomainRateLimit({ maxRequests: 100, windowSeconds: 60 }));
+fc.use(fc.middleware.circuitBreaker({ failureThreshold: 5, openDurationMs: 30000 }));
+
+// Custom logging middleware
+fc.use(async (ctx, next) => {
   const start = Date.now();
   await next();
   console.log(`${ctx.request.url}: ${Date.now() - start}ms`);
 });
-
-usePerDomainRateLimit({ maxRequests: 100, windowSeconds: 60 });
-useCircuitBreaker({ failureThreshold: 5, openDurationMs: 30000 });
 ```
 
 ```ts
 // anywhere.ts - Use the API
-import { getJSON, postJSON } from "@foundatiofx/fetchclient";
+import fc from "@foundatiofx/fetchclient";
 
-const { data } = await getJSON<User[]>("/users");
+// Simple usage
+const { data: users } = await fc.getJSON<User[]>("/users");
+
+// With full response access
+const response = await fc.postJSON<User>("/users", { name: "Alice" });
+if (response.ok) {
+  console.log("Created:", response.data);
+}
 ```
 
 ## Next Steps

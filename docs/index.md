@@ -43,7 +43,23 @@ features:
 
 ## Quick Example
 
-FetchClient works two ways - pick whichever style you prefer:
+FetchClient works multiple ways - pick whichever style you prefer:
+
+### Default Export (Recommended)
+
+```ts
+import fc from "@foundatiofx/fetchclient";
+
+// GET with typed JSON response
+const { data: user } = await fc.getJSON<User>("/api/users/1");
+
+// POST with body
+const { data: created } = await fc.postJSON<User>("/users", { name: "Alice" });
+
+// Full response access
+const response = await fc.getJSON<User[]>("/users");
+console.log(response.status, response.ok, response.data);
+```
 
 ### Functional API
 
@@ -56,27 +72,15 @@ const { data: users } = await getJSON<User[]>("/users");
 const { data: created } = await postJSON<User>("/users", { name: "Alice" });
 ```
 
-Or use `getFetchClient()` for fewer imports:
-
-```ts
-import { getFetchClient, setBaseUrl } from "@foundatiofx/fetchclient";
-
-setBaseUrl("https://api.example.com");
-
-const client = getFetchClient();
-const { data: users } = await client.getJSON<User[]>("/users");
-const { data: created } = await client.postJSON<User>("/users", {
-  name: "Alice",
-});
-```
-
 ### Class-Based API
 
 ```ts
 import { FetchClient } from "@foundatiofx/fetchclient";
 
 const client = new FetchClient({ baseUrl: "https://api.example.com" });
-const { data } = await client.getJSON<User[]>("/users");
+
+const { data: user } = await client.getJSON<User>("/users/1");
+const { data: created } = await client.postJSON<User>("/users", { name: "Alice" });
 ```
 
 ## Caching
@@ -95,28 +99,19 @@ getCache().deleteByTag("users");
 ## Middleware
 
 ```ts
-import { useMiddleware } from "@foundatiofx/fetchclient";
+import fc from "@foundatiofx/fetchclient";
 
-useMiddleware(async (ctx, next) => {
+// Built-in middleware factories
+fc.use(fc.middleware.retry({ limit: 3 }));
+fc.use(fc.middleware.rateLimit({ maxRequests: 100, windowSeconds: 60 }));
+fc.use(fc.middleware.circuitBreaker({ failureThreshold: 5 }));
+
+// Custom middleware
+fc.use(async (ctx, next) => {
   console.log("Request:", ctx.request.url);
   await next();
   console.log("Response:", ctx.response?.status);
 });
-```
-
-## Rate Limiting & Circuit Breaker
-
-```ts
-import {
-  useCircuitBreaker,
-  usePerDomainRateLimit,
-} from "@foundatiofx/fetchclient";
-
-// Prevent overwhelming APIs
-usePerDomainRateLimit({ maxRequests: 100, windowSeconds: 60 });
-
-// Stop requests when services fail
-useCircuitBreaker({ failureThreshold: 5, openDurationMs: 30000 });
 ```
 
 ## Testing

@@ -2,6 +2,33 @@
 
 Middleware lets you intercept and modify requests and responses. Use it for logging, authentication, error handling, data transformation, and more.
 
+## Built-in Middleware
+
+FetchClient provides built-in middleware factories for common patterns:
+
+```ts
+import fc from "@foundatiofx/fetchclient";
+
+// Retry failed requests with exponential backoff
+fc.use(fc.middleware.retry({ limit: 3 }));
+
+// Rate limiting
+fc.use(fc.middleware.rateLimit({ maxRequests: 100, windowSeconds: 60 }));
+fc.use(fc.middleware.perDomainRateLimit({ maxRequests: 50, windowSeconds: 60 }));
+
+// Circuit breaker for fault tolerance
+fc.use(fc.middleware.circuitBreaker({ failureThreshold: 5 }));
+fc.use(fc.middleware.perDomainCircuitBreaker({ failureThreshold: 3 }));
+```
+
+### Available Middleware Factories
+
+- `fc.middleware.retry(options)` - Retry failed requests with exponential backoff and jitter
+- `fc.middleware.rateLimit(options)` - Global rate limiting
+- `fc.middleware.perDomainRateLimit(options)` - Per-domain rate limiting
+- `fc.middleware.circuitBreaker(options)` - Global circuit breaker
+- `fc.middleware.perDomainCircuitBreaker(options)` - Per-domain circuit breaker
+
 ## How Middleware Works
 
 Middleware functions receive a context object and a `next` function. Call `next()` to continue to the next middleware (or the actual fetch). Code before `next()` runs before the request; code after runs after the response.
@@ -18,11 +45,25 @@ async function myMiddleware(ctx, next) {
 }
 ```
 
-## Adding Middleware
+## Adding Custom Middleware
+
+### Using Default Export
+
+The simplest way to add custom middleware:
+
+```ts
+import fc from "@foundatiofx/fetchclient";
+
+fc.use(async (ctx, next) => {
+  console.log("Request:", ctx.request.url);
+  await next();
+  console.log("Response:", ctx.response?.status);
+});
+```
 
 ### Global Middleware
 
-Applies to all `FetchClient` instances:
+Applies to all `FetchClient` instances (equivalent to `fc.use()`):
 
 ```ts
 import { useMiddleware } from "@foundatiofx/fetchclient";
@@ -150,6 +191,21 @@ provider.useMiddleware(async (ctx, next) => {
 ```
 
 ### Retry Logic
+
+Use the built-in retry middleware for automatic retries with exponential backoff:
+
+```ts
+import fc from "@foundatiofx/fetchclient";
+
+fc.use(fc.middleware.retry({
+  limit: 3,                    // Max retry attempts
+  methods: ["GET", "HEAD"],    // Only retry idempotent methods
+  statusCodes: [408, 429, 500, 502, 503, 504], // Status codes to retry
+  maxRetryAfter: 60,           // Max seconds to wait for Retry-After header
+}));
+```
+
+Or implement custom retry logic:
 
 ```ts
 provider.useMiddleware(async (ctx, next) => {
@@ -297,6 +353,34 @@ provider.useMiddleware(async (ctx, next) => {
 ```
 
 ## Practical Example: Complete Setup
+
+### Simple Setup with Default Export
+
+```ts
+import fc from "@foundatiofx/fetchclient";
+import { setBaseUrl, setAccessTokenFunc } from "@foundatiofx/fetchclient";
+
+setBaseUrl("https://api.example.com");
+setAccessTokenFunc(() => getAuthToken());
+
+// Built-in middleware
+fc.use(fc.middleware.retry({ limit: 3 }));
+fc.use(fc.middleware.perDomainRateLimit({ maxRequests: 100, windowSeconds: 60 }));
+fc.use(fc.middleware.circuitBreaker({ failureThreshold: 5 }));
+
+// Custom logging
+fc.use(async (ctx, next) => {
+  const start = Date.now();
+  console.log(`→ ${ctx.request.method} ${ctx.request.url}`);
+  await next();
+  console.log(`← ${ctx.response?.status} (${Date.now() - start}ms)`);
+});
+
+// Use anywhere
+const { data: users } = await fc.getJSON<User[]>("/users");
+```
+
+### Using Provider
 
 ```ts
 import { FetchClientProvider } from "@foundatiofx/fetchclient";
