@@ -26,7 +26,7 @@ export function useFetchClient(options?: FetchClientOptions): FetchClient {
  * Sends a GET request to the specified URL using the default client and provider and returns the response as JSON.
  * @param url - The URL to send the GET request to.
  * @param options - Optional request options.
- * @returns A promise that resolves to the response as JSON.
+ * @returns A promise that resolves to the response with parsed JSON in `data`.
  */
 export function getJSON<T>(
   url: string,
@@ -42,7 +42,7 @@ export function getJSON<T>(
  * @param {string} url - The URL to send the request to.
  * @param {object | string | FormData} [body] - The JSON payload or form data to send with the request.
  * @param {RequestOptions} [options] - Additional options for the request.
- * @returns {Promise<FetchClientResponse<T>>} - A promise that resolves to the response data.
+ * @returns A promise that resolves to the response with parsed JSON in `data`.
  */
 export function postJSON<T>(
   url: string,
@@ -59,7 +59,7 @@ export function postJSON<T>(
  * @param {string} url - The URL to send the request to.
  * @param {object | string} [body] - The JSON payload to send with the request.
  * @param {RequestOptions} [options] - Additional options for the request.
- * @returns {Promise<FetchClientResponse<T>>} - A promise that resolves to the response data.
+ * @returns A promise that resolves to the response with parsed JSON in `data`.
  */
 export function putJSON<T>(
   url: string,
@@ -76,7 +76,7 @@ export function putJSON<T>(
  * @param {string} url - The URL to send the request to.
  * @param {object | string} [body] - The JSON payload to send with the request.
  * @param {RequestOptions} [options] - Additional options for the request.
- * @returns {Promise<FetchClientResponse<T>>} - A promise that resolves to the response data.
+ * @returns A promise that resolves to the response with parsed JSON in `data`.
  */
 export function patchJSON<T>(
   url: string,
@@ -92,7 +92,7 @@ export function patchJSON<T>(
  * @template T - The type of the response data.
  * @param {string} url - The URL to send the request to.
  * @param {RequestOptions} [options] - Additional options for the request.
- * @returns {Promise<FetchClientResponse<T>>} - A promise that resolves to the response data.
+ * @returns A promise that resolves to the response with parsed JSON in `data`.
  */
 export function deleteJSON<T>(
   url: string,

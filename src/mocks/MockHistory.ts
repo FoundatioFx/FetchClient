@@ -5,6 +5,7 @@ import type { MockHistory } from "./types.ts";
  */
 export class MockHistoryImpl implements MockHistory {
   #get: Request[] = [];
+  #head: Request[] = [];
   #post: Request[] = [];
   #put: Request[] = [];
   #patch: Request[] = [];
@@ -13,6 +14,10 @@ export class MockHistoryImpl implements MockHistory {
 
   get get(): Request[] {
     return [...this.#get];
+  }
+
+  get head(): Request[] {
+    return [...this.#head];
   }
 
   get post(): Request[] {
@@ -45,6 +50,9 @@ export class MockHistoryImpl implements MockHistory {
       case "GET":
         this.#get.push(request);
         break;
+      case "HEAD":
+        this.#head.push(request);
+        break;
       case "POST":
         this.#post.push(request);
         break;
@@ -65,6 +73,7 @@ export class MockHistoryImpl implements MockHistory {
    */
   clear(): void {
     this.#get = [];
+    this.#head = [];
     this.#post = [];
     this.#put = [];
     this.#patch = [];

@@ -5,6 +5,7 @@ import { ProblemDetails } from "./ProblemDetails.ts";
 import {
   buildRateLimitHeader,
   buildRateLimitPolicyHeader,
+  groupByDomain,
   RateLimiter,
   type RateLimiterOptions,
 } from "./RateLimiter.ts";
@@ -174,4 +175,44 @@ export class RateLimitMiddleware {
       }
     };
   }
+}
+
+/**
+ * Creates a rate limit middleware with the given options.
+ *
+ * @example
+ * ```typescript
+ * const client = new FetchClient();
+ * client.use(createRateLimitMiddleware({
+ *   maxRequests: 100,
+ *   windowSeconds: 60,
+ * }));
+ * ```
+ */
+export function createRateLimitMiddleware(
+  options: RateLimitMiddlewareOptions,
+): FetchClientMiddleware {
+  return new RateLimitMiddleware(options).middleware();
+}
+
+/**
+ * Creates a per-domain rate limit middleware where each domain is tracked separately.
+ *
+ * @example
+ * ```typescript
+ * const client = new FetchClient();
+ * client.use(createPerDomainRateLimitMiddleware({
+ *   maxRequests: 100,
+ *   windowSeconds: 60,
+ * }));
+ * // api.example.com and api.other.com will have separate rate limits
+ * ```
+ */
+export function createPerDomainRateLimitMiddleware(
+  options: RateLimitMiddlewareOptions,
+): FetchClientMiddleware {
+  return new RateLimitMiddleware({
+    ...options,
+    getGroupFunc: groupByDomain,
+  }).middleware();
 }

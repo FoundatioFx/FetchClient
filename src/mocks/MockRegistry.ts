@@ -49,6 +49,14 @@ export class MockRegistry {
   }
 
   /**
+   * Creates a mock for HEAD requests matching the given URL.
+   * @param url - URL string or RegExp to match
+   */
+  onHead(url: string | RegExp): MockResponseBuilder<MockRegistry> {
+    return this.#addMock("HEAD", url);
+  }
+
+  /**
    * Creates a mock for POST requests matching the given URL.
    * @param url - URL string or RegExp to match
    */

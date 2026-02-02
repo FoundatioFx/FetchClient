@@ -34,6 +34,8 @@ export interface MockDefinition {
 export interface MockHistory {
   /** GET requests */
   readonly get: Request[];
+  /** HEAD requests */
+  readonly head: Request[];
   /** POST requests */
   readonly post: Request[];
   /** PUT requests */

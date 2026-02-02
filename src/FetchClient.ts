@@ -10,6 +10,7 @@ import { FetchClientProvider } from "./FetchClientProvider.ts";
 import { getCurrentProvider } from "./DefaultHelpers.ts";
 import type { FetchClientOptions } from "./FetchClientOptions.ts";
 import { type IObjectEvent, ObjectEvent } from "./ObjectEvent.ts";
+import { ResponsePromise } from "./ResponsePromise.ts";
 
 type Fetch = typeof globalThis.fetch;
 type RequestInitWithObjectBody = Omit<RequestInit, "body"> & {
@@ -122,39 +123,40 @@ export class FetchClient {
    *
    * @param url - The URL to send the GET request to.
    * @param options - The optional request options.
-   * @returns A promise that resolves to the response of the GET request.
+   * @returns A ResponsePromise that resolves to the response. Can use `.json<T>()` for typed JSON.
    */
-  async get(
+  get(
     url: string,
     options?: GetRequestOptions,
-  ): Promise<FetchClientResponse<unknown>> {
-    options = {
+  ): ResponsePromise<unknown> {
+    const mergedOptions = {
       ...this.options.defaultRequestOptions,
       ...options,
     };
 
-    const response = await this.fetchInternal(
+    const responsePromise = this.fetchInternal(
       url,
-      options,
-      this.buildRequestInit("GET", undefined, options),
+      mergedOptions,
+      this.buildRequestInit("GET", undefined, mergedOptions),
     );
 
-    return response;
+    return new ResponsePromise(responsePromise, mergedOptions);
   }
 
   /**
    * Sends a GET request to the specified URL and returns the response as JSON.
+   * The response will have the parsed JSON in `response.data`.
+   *
    * @param url - The URL to send the GET request to.
    * @param options - Optional request options.
-   * @returns A promise that resolves to the response as JSON.
+   * @returns A promise that resolves to the response with parsed JSON in `data`.
    */
-  getJSON<T>(
+  async getJSON<T>(
     url: string,
     options?: GetRequestOptions,
   ): Promise<FetchClientResponse<T>> {
-    return this.get(url, this.buildJsonRequestOptions(options)) as Promise<
-      FetchClientResponse<T>
-    >;
+    const mergedOptions = this.buildJsonRequestOptions(options);
+    return await this.get(url, mergedOptions) as FetchClientResponse<T>;
   }
 
   /**
@@ -163,48 +165,47 @@ export class FetchClient {
    * @param url - The URL to send the request to.
    * @param body - The request body, can be an object, a string, or FormData.
    * @param options - Additional options for the request.
-   * @returns A promise that resolves to a FetchClientResponse object.
+   * @returns A ResponsePromise that resolves to the response. Can use `.json<T>()` for typed JSON.
    */
-  async post(
+  post(
     url: string,
     body?: object | string | FormData,
     options?: RequestOptions,
-  ): Promise<FetchClientResponse<unknown>> {
-    options = {
+  ): ResponsePromise<unknown> {
+    const mergedOptions = {
       ...this.options.defaultRequestOptions,
       ...options,
     };
 
-    const response = await this.fetchInternal(
+    const responsePromise = this.fetchInternal(
       url,
-      options,
-      this.buildRequestInit("POST", body, options),
+      mergedOptions,
+      this.buildRequestInit("POST", body, mergedOptions),
     );
 
-    return response;
+    return new ResponsePromise(responsePromise, mergedOptions);
   }
 
   /**
    * Sends a POST request with JSON payload to the specified URL.
+   * The response will have the parsed JSON in `response.data`.
    *
    * @template T - The type of the response data.
    * @param {string} url - The URL to send the request to.
    * @param {object | string | FormData} [body] - The JSON payload or form data to send with the request.
    * @param {RequestOptions} [options] - Additional options for the request.
-   * @returns {Promise<FetchClientResponse<T>>} - A promise that resolves to the response data.
+   * @returns A promise that resolves to the response with parsed JSON in `data`.
    */
-  postJSON<T>(
+  async postJSON<T>(
     url: string,
     body?: object | string | FormData,
     options?: RequestOptions,
   ): Promise<FetchClientResponse<T>> {
-    return this.post(
+    return await this.post(
       url,
       body,
       this.buildJsonRequestOptions(options),
-    ) as Promise<
-      FetchClientResponse<T>
-    >;
+    ) as FetchClientResponse<T>;
   }
 
   /**
@@ -212,48 +213,47 @@ export class FetchClient {
    * @param url - The URL to send the request to.
    * @param body - The request body, can be an object, a string, or FormData.
    * @param options - The request options.
-   * @returns A promise that resolves to a FetchClientResponse object.
+   * @returns A ResponsePromise that resolves to the response. Can use `.json<T>()` for typed JSON.
    */
-  async put(
+  put(
     url: string,
     body?: object | string | FormData,
     options?: RequestOptions,
-  ): Promise<FetchClientResponse<unknown>> {
-    options = {
+  ): ResponsePromise<unknown> {
+    const mergedOptions = {
       ...this.options.defaultRequestOptions,
       ...options,
     };
 
-    const response = await this.fetchInternal(
+    const responsePromise = this.fetchInternal(
       url,
-      options,
-      this.buildRequestInit("PUT", body, options),
+      mergedOptions,
+      this.buildRequestInit("PUT", body, mergedOptions),
     );
 
-    return response;
+    return new ResponsePromise(responsePromise, mergedOptions);
   }
 
   /**
    * Sends a PUT request with JSON payload to the specified URL.
+   * The response will have the parsed JSON in `response.data`.
    *
    * @template T - The type of the response data.
    * @param {string} url - The URL to send the request to.
    * @param {object | string} [body] - The JSON payload to send with the request.
    * @param {RequestOptions} [options] - Additional options for the request.
-   * @returns {Promise<FetchClientResponse<T>>} - A promise that resolves to the response data.
+   * @returns A promise that resolves to the response with parsed JSON in `data`.
    */
-  putJSON<T>(
+  async putJSON<T>(
     url: string,
     body?: object | string,
     options?: RequestOptions,
   ): Promise<FetchClientResponse<T>> {
-    return this.put(
+    return await this.put(
       url,
       body,
       this.buildJsonRequestOptions(options),
-    ) as Promise<
-      FetchClientResponse<T>
-    >;
+    ) as FetchClientResponse<T>;
   }
 
   /**
@@ -261,48 +261,47 @@ export class FetchClient {
    * @param url - The URL to send the PATCH request to.
    * @param body - The body of the request. It can be an object, a string, or FormData.
    * @param options - The options for the request.
-   * @returns A Promise that resolves to the response of the PATCH request.
+   * @returns A ResponsePromise that resolves to the response. Can use `.json<T>()` for typed JSON.
    */
-  async patch(
+  patch(
     url: string,
     body?: object | string | FormData,
     options?: RequestOptions,
-  ): Promise<Response> {
-    options = {
+  ): ResponsePromise<unknown> {
+    const mergedOptions = {
       ...this.options.defaultRequestOptions,
       ...options,
     };
 
-    const response = await this.fetchInternal(
+    const responsePromise = this.fetchInternal(
       url,
-      options,
-      this.buildRequestInit("PATCH", body, options),
+      mergedOptions,
+      this.buildRequestInit("PATCH", body, mergedOptions),
     );
 
-    return response;
+    return new ResponsePromise(responsePromise, mergedOptions);
   }
 
   /**
    * Sends a PATCH request with JSON payload to the specified URL.
+   * The response will have the parsed JSON in `response.data`.
    *
    * @template T - The type of the response data.
    * @param {string} url - The URL to send the request to.
    * @param {object | string} [body] - The JSON payload to send with the request.
    * @param {RequestOptions} [options] - Additional options for the request.
-   * @returns {Promise<FetchClientResponse<T>>} - A promise that resolves to the response data.
+   * @returns A promise that resolves to the response with parsed JSON in `data`.
    */
-  patchJSON<T>(
+  async patchJSON<T>(
     url: string,
     body?: object | string,
     options?: RequestOptions,
   ): Promise<FetchClientResponse<T>> {
-    return this.patch(
+    return await this.patch(
       url,
       body,
       this.buildJsonRequestOptions(options),
-    ) as Promise<
-      FetchClientResponse<T>
-    >;
+    ) as FetchClientResponse<T>;
   }
 
   /**
@@ -310,41 +309,69 @@ export class FetchClient {
    *
    * @param url - The URL to send the DELETE request to.
    * @param options - The options for the request.
-   * @returns A promise that resolves to a `FetchClientResponse` object.
+   * @returns A ResponsePromise that resolves to the response. Can use `.json<T>()` for typed JSON.
    */
-  async delete(
+  delete(
     url: string,
     options?: RequestOptions,
-  ): Promise<FetchClientResponse<unknown>> {
-    options = {
+  ): ResponsePromise<unknown> {
+    const mergedOptions = {
       ...this.options.defaultRequestOptions,
       ...options,
     };
 
-    const response = await this.fetchInternal(
+    const responsePromise = this.fetchInternal(
       url,
-      options,
-      this.buildRequestInit("DELETE", undefined, options),
+      mergedOptions,
+      this.buildRequestInit("DELETE", undefined, mergedOptions),
     );
 
-    return response;
+    return new ResponsePromise(responsePromise, mergedOptions);
   }
 
   /**
    * Sends a DELETE request with JSON payload to the specified URL.
+   * The response will have the parsed JSON in `response.data`.
    *
    * @template T - The type of the response data.
    * @param {string} url - The URL to send the request to.
    * @param {RequestOptions} [options] - Additional options for the request.
-   * @returns {Promise<FetchClientResponse<T>>} - A promise that resolves to the response data.
+   * @returns A promise that resolves to the response with parsed JSON in `data`.
    */
-  deleteJSON<T>(
+  async deleteJSON<T>(
     url: string,
     options?: RequestOptions,
   ): Promise<FetchClientResponse<T>> {
-    return this.delete(url, this.buildJsonRequestOptions(options)) as Promise<
-      FetchClientResponse<T>
-    >;
+    return await this.delete(
+      url,
+      this.buildJsonRequestOptions(options),
+    ) as FetchClientResponse<T>;
+  }
+
+  /**
+   * Sends a HEAD request to the specified URL.
+   * HEAD requests are identical to GET requests but without the response body.
+   *
+   * @param url - The URL to send the HEAD request to.
+   * @param options - The optional request options.
+   * @returns A ResponsePromise that resolves to the response.
+   */
+  head(
+    url: string,
+    options?: GetRequestOptions,
+  ): ResponsePromise<void> {
+    const mergedOptions = {
+      ...this.options.defaultRequestOptions,
+      ...options,
+    };
+
+    const responsePromise = this.fetchInternal<void>(
+      url,
+      mergedOptions,
+      this.buildRequestInit("HEAD", undefined, mergedOptions),
+    );
+
+    return new ResponsePromise(responsePromise, mergedOptions);
   }
 
   private async validate(
@@ -619,7 +646,7 @@ export class FetchClient {
   }
 
   private buildRequestInit(
-    method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE",
+    method: "GET" | "HEAD" | "POST" | "PUT" | "PATCH" | "DELETE",
     body: object | string | FormData | undefined,
     options: RequestOptions | undefined,
   ): RequestInitWithObjectBody {

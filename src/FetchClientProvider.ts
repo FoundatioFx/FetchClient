@@ -18,6 +18,10 @@ import {
   type CircuitBreaker,
   groupByDomain as circuitBreakerGroupByDomain,
 } from "./CircuitBreaker.ts";
+import {
+  RetryMiddleware,
+  type RetryMiddlewareOptions,
+} from "./RetryMiddleware.ts";
 
 type Fetch = typeof globalThis.fetch;
 
@@ -32,6 +36,8 @@ export class FetchClientProvider {
   #rateLimitMiddlewareFunc?: FetchClientMiddleware;
   #circuitBreakerMiddleware?: CircuitBreakerMiddleware;
   #circuitBreakerMiddlewareFunc?: FetchClientMiddleware;
+  #retryMiddleware?: RetryMiddleware;
+  #retryMiddlewareFunc?: FetchClientMiddleware;
   #counter = new Counter();
   #onLoading = new ObjectEvent<boolean>();
 
@@ -297,6 +303,31 @@ export class FetchClientProvider {
     const middlewareFunc = this.#circuitBreakerMiddlewareFunc;
     this.#circuitBreakerMiddleware = undefined;
     this.#circuitBreakerMiddlewareFunc = undefined;
+    if (middlewareFunc) {
+      this.#options.middleware = this.#options.middleware?.filter(
+        (m) => m !== middlewareFunc,
+      );
+    }
+  }
+
+  /**
+   * Enables automatic retry for failed requests.
+   * Retries are performed with exponential backoff and jitter.
+   * @param options - The retry configuration options.
+   */
+  public useRetry(options?: RetryMiddlewareOptions) {
+    this.#retryMiddleware = new RetryMiddleware(options);
+    this.#retryMiddlewareFunc = this.#retryMiddleware.middleware();
+    this.useMiddleware(this.#retryMiddlewareFunc);
+  }
+
+  /**
+   * Removes the retry middleware from all FetchClient instances created by this provider.
+   */
+  public removeRetry() {
+    const middlewareFunc = this.#retryMiddlewareFunc;
+    this.#retryMiddleware = undefined;
+    this.#retryMiddlewareFunc = undefined;
     if (middlewareFunc) {
       this.#options.middleware = this.#options.middleware?.filter(
         (m) => m !== middlewareFunc,
