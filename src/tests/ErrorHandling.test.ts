@@ -7,6 +7,7 @@ import {
 } from "@std/assert";
 import {
   FetchClient,
+  FetchClientError,
   type FetchClientResponse,
   ProblemDetails,
 } from "../../mod.ts";
@@ -40,7 +41,7 @@ Deno.test("throws error for unexpected status codes by default", async () => {
 
   await assertRejects(async () => {
     await client.getJSON("https://jsonplaceholder.typicode.com/todos/1");
-  });
+  }, FetchClientError);
 });
 
 Deno.test("can use shouldThrowOnUnexpectedStatusCodes to not throw", async () => {
@@ -138,8 +139,8 @@ Deno.test("handles 400 response with non-JSON text", async () => {
       headers: { "Accept": "text/plain" },
     });
   } catch (error) {
-    assert(error instanceof Response);
-    const response = error as FetchClientResponse<unknown>;
+    assert(error instanceof FetchClientError);
+    const response = error.response as FetchClientResponse<unknown>;
     assertEquals(response.status, 400);
     assertEquals(response.statusText, "Bad Request");
     assertFalse(response.ok);

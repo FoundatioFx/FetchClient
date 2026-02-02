@@ -1,6 +1,7 @@
 export { FetchClient } from "./src/FetchClient.ts";
 export type { FetchClientOptions } from "./src/FetchClientOptions.ts";
 export type { FetchClientResponse } from "./src/FetchClientResponse.ts";
+export { FetchClientError } from "./src/FetchClientError.ts";
 export { ResponsePromise } from "./src/ResponsePromise.ts";
 export { ProblemDetails } from "./src/ProblemDetails.ts";
 export {
@@ -66,7 +67,10 @@ import {
   useFetchClient,
   useMiddleware,
 } from "./src/DefaultHelpers.ts";
-import type { GetRequestOptions, RequestOptions } from "./src/RequestOptions.ts";
+import type {
+  GetRequestOptions,
+  RequestOptions,
+} from "./src/RequestOptions.ts";
 import type { ResponsePromise } from "./src/ResponsePromise.ts";
 
 /**

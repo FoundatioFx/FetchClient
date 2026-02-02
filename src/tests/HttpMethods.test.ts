@@ -431,7 +431,9 @@ Deno.test("default export fc.use(fc.middleware.retry()) works", async () => {
   // Use fc.use with fc.middleware.retry
   fc.use(fc.middleware.retry({ limit: 2, delay: () => 10, jitter: 0 }));
 
-  const result = await fc.get("https://example.com/api/retry").json<{ success: boolean }>();
+  const result = await fc.get("https://example.com/api/retry").json<
+    { success: boolean }
+  >();
 
   assertEquals(result.success, true);
   assertEquals(mocks.history.get.length, 2); // First failed, second succeeded

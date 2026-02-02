@@ -11,6 +11,7 @@ import { getCurrentProvider } from "./DefaultHelpers.ts";
 import type { FetchClientOptions } from "./FetchClientOptions.ts";
 import { type IObjectEvent, ObjectEvent } from "./ObjectEvent.ts";
 import { ResponsePromise } from "./ResponsePromise.ts";
+import { FetchClientError } from "./FetchClientError.ts";
 
 type Fetch = typeof globalThis.fetch;
 type RequestInitWithObjectBody = Omit<RequestInit, "body"> & {
@@ -801,6 +802,6 @@ export class FetchClient {
     response.problem.title = `Unexpected status code: ${response.status}`;
     response.problem.setErrorMessage(response.problem.title);
 
-    throw response;
+    throw new FetchClientError(response);
   }
 }

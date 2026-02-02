@@ -194,8 +194,9 @@ Deno.test("RateLimitMiddleware - returns 429 response when configured", async ()
     await client.get("http://example.com");
     throw new Error("Expected rate limit response to be thrown");
   } catch (error) {
-    // The response object is thrown by FetchClient for 4xx/5xx status codes
-    const response = error as FetchClientResponse<unknown>;
+    // FetchClient throws FetchClientError for 4xx/5xx status codes
+    const response = (error as { response: FetchClientResponse<unknown> })
+      .response;
     assertEquals(response.status, 429);
     assertEquals(response.problem?.title, "Unexpected status code: 429");
     if (response.problem?.detail) {
@@ -230,7 +231,8 @@ Deno.test("RateLimitMiddleware - provides rate limit info in error response", as
     await client.get("http://example.com");
     throw new Error("Expected rate limit response to be thrown");
   } catch (error) {
-    const response = error as FetchClientResponse<unknown>;
+    const response = (error as { response: FetchClientResponse<unknown> })
+      .response;
     assertEquals(response.status, 429);
     assertEquals(response.headers.get("RateLimit-Limit"), "1");
     assertEquals(response.headers.get("RateLimit-Remaining"), "0");

@@ -16,7 +16,8 @@ import type { RequestOptions } from "./RequestOptions.ts";
  * const file = await client.get("/file").blob();
  * ```
  */
-export class ResponsePromise<T = unknown> implements PromiseLike<FetchClientResponse<T>> {
+export class ResponsePromise<T = unknown>
+  implements PromiseLike<FetchClientResponse<T>> {
   readonly #responsePromise: Promise<FetchClientResponse<T>>;
   readonly #options?: RequestOptions;
 
