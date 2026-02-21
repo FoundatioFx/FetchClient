@@ -8,7 +8,8 @@ npm install @foundatiofx/fetchclient
 
 ## Quick Usage
 
-FetchClient offers multiple styles. Choose whichever you prefer - all have full access to all features.
+FetchClient offers multiple styles. Choose whichever you prefer - all have full
+access to all features.
 
 ### Default Export (Recommended)
 
@@ -46,7 +47,7 @@ const { data: created } = await postJSON<User>("/users", { name: "Alice" });
 Or use `useFetchClient()` if you prefer working with a client instance:
 
 ```ts
-import { useFetchClient, setBaseUrl } from "@foundatiofx/fetchclient";
+import { setBaseUrl, useFetchClient } from "@foundatiofx/fetchclient";
 
 setBaseUrl("https://api.example.com");
 
@@ -105,8 +106,12 @@ setAccessTokenFunc(() => localStorage.getItem("token"));
 
 // Add middleware using fc.use() with built-in factories
 fc.use(fc.middleware.retry({ limit: 3 }));
-fc.use(fc.middleware.perDomainRateLimit({ maxRequests: 100, windowSeconds: 60 }));
-fc.use(fc.middleware.circuitBreaker({ failureThreshold: 5, openDurationMs: 30000 }));
+fc.use(
+  fc.middleware.perDomainRateLimit({ maxRequests: 100, windowSeconds: 60 }),
+);
+fc.use(
+  fc.middleware.circuitBreaker({ failureThreshold: 5, openDurationMs: 30000 }),
+);
 
 // Custom logging middleware
 fc.use(async (ctx, next) => {

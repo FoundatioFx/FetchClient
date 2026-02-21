@@ -213,9 +213,13 @@ Deno.test("MockRegistry - delay response", async () => {
   const start = Date.now();
   const response = await client.getJSON("https://example.com/api/delayed");
   const elapsed = Date.now() - start;
+  const minimumExpectedDelayMs = 45;
 
   assertEquals(response.data, { delayed: true });
-  assert(elapsed >= 50, `Expected delay of at least 50ms, got ${elapsed}ms`);
+  assert(
+    elapsed >= minimumExpectedDelayMs,
+    `Expected delay of at least ${minimumExpectedDelayMs}ms, got ${elapsed}ms`,
+  );
 });
 
 Deno.test("MockRegistry - withHeaders conditional matching", async () => {

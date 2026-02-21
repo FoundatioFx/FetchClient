@@ -1,10 +1,14 @@
 # Configuration
 
-FetchClient uses a **default provider** behind the scenes that manages shared configuration, cache, and state for your entire app. You don't need to create or manage providers directly - just call the configuration functions and everything works.
+FetchClient uses a **default provider** behind the scenes that manages shared
+configuration, cache, and state for your entire app. You don't need to create or
+manage providers directly - just call the configuration functions and everything
+works.
 
 ## How It Works
 
-When you use `new FetchClient()` or call functions like `getJSON()`, they all share the same default provider. This means:
+When you use `new FetchClient()` or call functions like `getJSON()`, they all
+share the same default provider. This means:
 
 - **Shared configuration** - Set `baseUrl` once, use it everywhere
 - **Shared cache** - Cache entries are available to all clients
@@ -18,8 +22,8 @@ setBaseUrl("https://api.example.com");
 
 // Both use the same configuration and cache
 const client = new FetchClient();
-await client.getJSON("/users");  // Uses baseUrl
-await getJSON("/users");         // Same baseUrl, same cache
+await client.getJSON("/users"); // Uses baseUrl
+await getJSON("/users"); // Same baseUrl, same cache
 ```
 
 ## Basic Setup
@@ -237,7 +241,12 @@ getCurrentProvider().loading.on((isLoading) => {
 
 ```ts
 // user-service.ts
-import { deleteJSON, getCache, getJSON, postJSON } from "@foundatiofx/fetchclient";
+import {
+  deleteJSON,
+  getCache,
+  getJSON,
+  postJSON,
+} from "@foundatiofx/fetchclient";
 
 export async function getUsers() {
   const { data } = await getJSON<User[]>("/users", {
@@ -262,4 +271,7 @@ export async function deleteUser(id: number) {
 
 ## Advanced: Custom Providers
 
-For advanced use cases like connecting to multiple APIs with different configurations, you can create separate `FetchClientProvider` instances. See the [API reference](https://jsr.io/@foundatiofx/fetchclient/doc/~/FetchClientProvider) for details.
+For advanced use cases like connecting to multiple APIs with different
+configurations, you can create separate `FetchClientProvider` instances. See the
+[API reference](https://jsr.io/@foundatiofx/fetchclient/doc/~/FetchClientProvider)
+for details.

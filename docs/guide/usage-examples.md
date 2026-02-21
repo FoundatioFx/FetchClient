@@ -13,11 +13,17 @@ import fc from "@foundatiofx/fetchclient";
 const { data: user } = await fc.getJSON<User>("/api/users/1");
 
 // POST with body
-const { data: created } = await fc.postJSON<User>("/api/users", { name: "Alice" });
+const { data: created } = await fc.postJSON<User>("/api/users", {
+  name: "Alice",
+});
 
 // PUT and PATCH
-const { data: updated } = await fc.putJSON<User>("/api/users/1", { name: "Bob" });
-const { data: patched } = await fc.patchJSON<User>("/api/users/1", { name: "Charlie" });
+const { data: updated } = await fc.putJSON<User>("/api/users/1", {
+  name: "Bob",
+});
+const { data: patched } = await fc.patchJSON<User>("/api/users/1", {
+  name: "Charlie",
+});
 
 // DELETE
 const { data: deleted } = await fc.deleteJSON<User>("/api/users/1");
@@ -57,7 +63,9 @@ fc.use(fc.middleware.retry({ limit: 3 }));
 
 // Rate limiting
 fc.use(fc.middleware.rateLimit({ maxRequests: 100, windowSeconds: 60 }));
-fc.use(fc.middleware.perDomainRateLimit({ maxRequests: 50, windowSeconds: 60 }));
+fc.use(
+  fc.middleware.perDomainRateLimit({ maxRequests: 50, windowSeconds: 60 }),
+);
 
 // Circuit breaker
 fc.use(fc.middleware.circuitBreaker({ failureThreshold: 5 }));
@@ -73,7 +81,8 @@ fc.use(async (ctx, next) => {
 
 ### Available Middleware Factories
 
-- `fc.middleware.retry(options)` - Retry failed requests with exponential backoff
+- `fc.middleware.retry(options)` - Retry failed requests with exponential
+  backoff
 - `fc.middleware.rateLimit(options)` - Global rate limiting
 - `fc.middleware.perDomainRateLimit(options)` - Per-domain rate limiting
 - `fc.middleware.circuitBreaker(options)` - Global circuit breaker
@@ -189,21 +198,26 @@ await client.getJSON(`https://api.example.com/data`);
 
 ## Circuit Breaker
 
-The circuit breaker pattern prevents cascading failures when an API goes down. When a service starts failing, the circuit "opens" and blocks further requests for a period, allowing the service time to recover.
+The circuit breaker pattern prevents cascading failures when an API goes down.
+When a service starts failing, the circuit "opens" and blocks further requests
+for a period, allowing the service time to recover.
 
 ### Basic Usage
 
 ```ts
-import { FetchClientProvider, useCircuitBreaker } from "@foundatiofx/fetchclient";
+import {
+  FetchClientProvider,
+  useCircuitBreaker,
+} from "@foundatiofx/fetchclient";
 
 const provider = new FetchClientProvider();
 provider.setBaseUrl("https://api.example.com");
 
 // Enable circuit breaker
 provider.useCircuitBreaker({
-  failureThreshold: 5,    // Open after 5 failures
-  openDurationMs: 30000,  // Stay open for 30 seconds
-  successThreshold: 2,    // Close after 2 successes in HALF_OPEN
+  failureThreshold: 5, // Open after 5 failures
+  openDurationMs: 30000, // Stay open for 30 seconds
+  successThreshold: 2, // Close after 2 successes in HALF_OPEN
 });
 
 const client = provider.getFetchClient();
@@ -243,7 +257,8 @@ provider.useCircuitBreaker({ failureThreshold: 5 });
 
 ### Custom Failure Detection
 
-By default, 5xx errors and 429 (rate limited) responses count as failures. You can customize this:
+By default, 5xx errors and 429 (rate limited) responses count as failures. You
+can customize this:
 
 ```ts
 provider.useCircuitBreaker({
@@ -295,8 +310,10 @@ console.log(breaker.getFailureCount("https://api.example.com/users"));
 ### Circuit States
 
 - **CLOSED**: Normal operation. Requests pass through, failures are tracked.
-- **OPEN**: Circuit tripped. Requests immediately return 503 (Service Unavailable).
-- **HALF_OPEN**: Testing recovery. Limited requests allowed to test if service recovered.
+- **OPEN**: Circuit tripped. Requests immediately return 503 (Service
+  Unavailable).
+- **HALF_OPEN**: Testing recovery. Limited requests allowed to test if service
+  recovered.
 
 ### Throwing Errors Instead of 503
 
@@ -405,7 +422,8 @@ console.log(client.requestCount);
 
 ## Testing with MockRegistry
 
-Use `MockRegistry` to mock HTTP responses in tests without making real network requests:
+Use `MockRegistry` to mock HTTP responses in tests without making real network
+requests:
 
 ```ts
 import { FetchClientProvider } from "@foundatiofx/fetchclient";
@@ -432,7 +450,8 @@ mocks.restore();
 
 ### Standalone Fetch Replacement
 
-Use `mocks.fetch` to get the mock fetch function directly, without installing on a provider. This is useful for mocking fetch in any context:
+Use `mocks.fetch` to get the mock fetch function directly, without installing on
+a provider. This is useful for mocking fetch in any context:
 
 ```ts
 import { MockRegistry } from "@foundatiofx/fetchclient/mocks";
@@ -482,7 +501,7 @@ await client.getJSON("/api/users/456"); // Matches
 await client.postJSON("/api/users", { name: "Test" });
 
 console.log(mocks.history.post.length); // 1
-console.log(mocks.history.all.length);  // 1
+console.log(mocks.history.all.length); // 1
 ```
 
 ### Test Setup Pattern

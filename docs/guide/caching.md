@@ -1,6 +1,7 @@
 # Caching
 
-FetchClient provides built-in response caching with TTL (time-to-live), cache tags for grouped invalidation, and programmatic cache control.
+FetchClient provides built-in response caching with TTL (time-to-live), cache
+tags for grouped invalidation, and programmatic cache control.
 
 ## Basic Caching
 
@@ -33,7 +34,8 @@ const cached = await client.getJSON<Todo>(
 
 ## Cache Keys
 
-Cache keys are arrays that get joined with colons. This makes it easy to organize and invalidate related entries:
+Cache keys are arrays that get joined with colons. This makes it easy to
+organize and invalidate related entries:
 
 ```ts
 // These cache keys become:
@@ -85,7 +87,8 @@ client.cache.clear();
 
 ## Cache Tagging
 
-Tags let you group unrelated cache entries and invalidate them together. This is useful when data relationships span different cache keys.
+Tags let you group unrelated cache entries and invalidate them together. This is
+useful when data relationships span different cache keys.
 
 ### Adding Tags
 
@@ -135,7 +138,8 @@ const entryTags = client.cache.getEntryTags(["posts", "1"]);
 ## Cache Behavior
 
 - **Automatic cleanup**: Expired entries are removed automatically when accessed
-- **Tag cleanup**: Tags are automatically cleaned up when their entries expire or are deleted
+- **Tag cleanup**: Tags are automatically cleaned up when their entries expire
+  or are deleted
 - **Memory-based**: Cache is stored in memory and clears on page refresh
 - **Per-provider**: Each `FetchClientProvider` has its own cache instance
 

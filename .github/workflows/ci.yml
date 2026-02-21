@@ -59,7 +59,7 @@ jobs:
 
       - name: Tests
         run: |
-          deno test --allow-net --coverage=cov/
+          deno test --allow-net --coverage=cov/ src/tests
           deno coverage cov/
 
       - name: Publish Release Package

@@ -80,7 +80,9 @@ import { FetchClient } from "@foundatiofx/fetchclient";
 const client = new FetchClient({ baseUrl: "https://api.example.com" });
 
 const { data: user } = await client.getJSON<User>("/users/1");
-const { data: created } = await client.postJSON<User>("/users", { name: "Alice" });
+const { data: created } = await client.postJSON<User>("/users", {
+  name: "Alice",
+});
 ```
 
 ## Caching

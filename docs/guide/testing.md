@@ -1,6 +1,7 @@
 # Testing
 
-FetchClient includes `MockRegistry` for mocking HTTP responses in tests. No network requests are made, and you have full control over responses.
+FetchClient includes `MockRegistry` for mocking HTTP responses in tests. No
+network requests are made, and you have full control over responses.
 
 ## Installation
 

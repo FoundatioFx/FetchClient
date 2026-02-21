@@ -1,6 +1,7 @@
 # Middleware
 
-Middleware lets you intercept and modify requests and responses. Use it for logging, authentication, error handling, data transformation, and more.
+Middleware lets you intercept and modify requests and responses. Use it for
+logging, authentication, error handling, data transformation, and more.
 
 ## Built-in Middleware
 
@@ -14,7 +15,9 @@ fc.use(fc.middleware.retry({ limit: 3 }));
 
 // Rate limiting
 fc.use(fc.middleware.rateLimit({ maxRequests: 100, windowSeconds: 60 }));
-fc.use(fc.middleware.perDomainRateLimit({ maxRequests: 50, windowSeconds: 60 }));
+fc.use(
+  fc.middleware.perDomainRateLimit({ maxRequests: 50, windowSeconds: 60 }),
+);
 
 // Circuit breaker for fault tolerance
 fc.use(fc.middleware.circuitBreaker({ failureThreshold: 5 }));
@@ -23,7 +26,8 @@ fc.use(fc.middleware.perDomainCircuitBreaker({ failureThreshold: 3 }));
 
 ### Available Middleware Factories
 
-- `fc.middleware.retry(options)` - Retry failed requests with exponential backoff and jitter
+- `fc.middleware.retry(options)` - Retry failed requests with exponential
+  backoff and jitter
 - `fc.middleware.rateLimit(options)` - Global rate limiting
 - `fc.middleware.perDomainRateLimit(options)` - Per-domain rate limiting
 - `fc.middleware.circuitBreaker(options)` - Global circuit breaker
@@ -31,7 +35,9 @@ fc.use(fc.middleware.perDomainCircuitBreaker({ failureThreshold: 3 }));
 
 ## How Middleware Works
 
-Middleware functions receive a context object and a `next` function. Call `next()` to continue to the next middleware (or the actual fetch). Code before `next()` runs before the request; code after runs after the response.
+Middleware functions receive a context object and a `next` function. Call
+`next()` to continue to the next middleware (or the actual fetch). Code before
+`next()` runs before the request; code after runs after the response.
 
 ```ts
 async function myMiddleware(ctx, next) {
@@ -116,10 +122,10 @@ The context object provides access to the request and response:
 
 ```ts
 interface FetchClientContext {
-  request: Request;           // The outgoing request
-  response?: Response;        // The response (after next())
-  data?: unknown;             // Parsed response data (JSON)
-  options: RequestOptions;    // Request options
+  request: Request; // The outgoing request
+  response?: Response; // The response (after next())
+  data?: unknown; // Parsed response data (JSON)
+  options: RequestOptions; // Request options
 }
 ```
 
@@ -192,16 +198,17 @@ provider.useMiddleware(async (ctx, next) => {
 
 ### Retry Logic
 
-Use the built-in retry middleware for automatic retries with exponential backoff:
+Use the built-in retry middleware for automatic retries with exponential
+backoff:
 
 ```ts
 import fc from "@foundatiofx/fetchclient";
 
 fc.use(fc.middleware.retry({
-  limit: 3,                    // Max retry attempts
-  methods: ["GET", "HEAD"],    // Only retry idempotent methods
+  limit: 3, // Max retry attempts
+  methods: ["GET", "HEAD"], // Only retry idempotent methods
   statusCodes: [408, 429, 500, 502, 503, 504], // Status codes to retry
-  maxRetryAfter: 60,           // Max seconds to wait for Retry-After header
+  maxRetryAfter: 60, // Max seconds to wait for Retry-After header
 }));
 ```
 
@@ -226,7 +233,7 @@ provider.useMiddleware(async (ctx, next) => {
 
     // Wait before retry (exponential backoff)
     if (attempt < maxRetries - 1) {
-      await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+      await new Promise((r) => setTimeout(r, Math.pow(2, attempt) * 1000));
     }
   }
 
@@ -358,14 +365,16 @@ provider.useMiddleware(async (ctx, next) => {
 
 ```ts
 import fc from "@foundatiofx/fetchclient";
-import { setBaseUrl, setAccessTokenFunc } from "@foundatiofx/fetchclient";
+import { setAccessTokenFunc, setBaseUrl } from "@foundatiofx/fetchclient";
 
 setBaseUrl("https://api.example.com");
 setAccessTokenFunc(() => getAuthToken());
 
 // Built-in middleware
 fc.use(fc.middleware.retry({ limit: 3 }));
-fc.use(fc.middleware.perDomainRateLimit({ maxRequests: 100, windowSeconds: 60 }));
+fc.use(
+  fc.middleware.perDomainRateLimit({ maxRequests: 100, windowSeconds: 60 }),
+);
 fc.use(fc.middleware.circuitBreaker({ failureThreshold: 5 }));
 
 // Custom logging

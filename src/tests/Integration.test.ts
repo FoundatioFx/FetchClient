@@ -15,7 +15,21 @@ type Products = {
   products: Array<{ id: number; name: string }>;
 };
 
-Deno.test("can getJSON from real API", async () => {
+function integrationTest(name: string, fn: () => void | Promise<void>) {
+  Deno.test(name, async () => {
+    const netPermission = await Deno.permissions.query({ name: "net" });
+    if (netPermission.state !== "granted") {
+      console.log(
+        `Skipping integration test '${name}' (net permission required)`,
+      );
+      return;
+    }
+
+    await fn();
+  });
+}
+
+integrationTest("can getJSON from real API", async () => {
   const api = new FetchClient();
   const res = await api.getJSON<Products>(
     `https://dummyjson.com/products/search?q=iphone&limit=10`,
@@ -24,7 +38,7 @@ Deno.test("can getJSON from real API", async () => {
   assert(res.data?.products);
 });
 
-Deno.test("can use getJSON function export", async () => {
+integrationTest("can use getJSON function export", async () => {
   const res = await getJSON<Products>(
     `https://dummyjson.com/products/search?q=iphone&limit=10`,
   );
@@ -33,7 +47,7 @@ Deno.test("can use getJSON function export", async () => {
   assert(res.data?.products);
 });
 
-Deno.test("can getJSON with baseUrl from real API", async () => {
+integrationTest("can getJSON with baseUrl from real API", async () => {
   const api = new FetchClient({
     baseUrl: "https://dummyjson.com",
   });
@@ -44,7 +58,7 @@ Deno.test("can getJSON with baseUrl from real API", async () => {
   assert(res.data?.products);
 });
 
-Deno.test("can abort getJSON with real API", async () => {
+integrationTest("can abort getJSON with real API", async () => {
   const provider = new FetchClientProvider();
   const client = provider.getFetchClient();
   let gotError = false;
@@ -81,7 +95,7 @@ Deno.test("can abort getJSON with real API", async () => {
   assertEquals(response.problem?.status, 408);
 });
 
-Deno.test("can getJSON with timeout from real API", async () => {
+integrationTest("can getJSON with timeout from real API", async () => {
   const provider = new FetchClientProvider();
 
   const client = provider.getFetchClient();
@@ -113,7 +127,7 @@ Deno.test("can getJSON with timeout from real API", async () => {
   assertEquals(response.statusText, "Request Timeout");
 });
 
-Deno.test("can use useFetchClient function", async () => {
+integrationTest("can use useFetchClient function", async () => {
   let called = false;
   let optionsCalled = false;
 
@@ -161,7 +175,7 @@ Deno.test("can use useFetchClient function", async () => {
   assert(optionsCalled);
 });
 
-Deno.test("can post FormData multipart", async () => {
+integrationTest("can post FormData multipart", async () => {
   const client = new FetchClient();
   const fd = new FormData();
   fd.append("field1", "value1");
@@ -207,118 +221,121 @@ Deno.test("can post FormData multipart", async () => {
   assert(files.binary && typeof files.binary === "string");
 });
 
-Deno.test("can use per-domain rate limiting with auto-update from headers", async () => {
-  const provider = new FetchClientProvider();
+integrationTest(
+  "can use per-domain rate limiting with auto-update from headers",
+  async () => {
+    const provider = new FetchClientProvider();
 
-  const groupTracker = new Map<string, number>();
+    const groupTracker = new Map<string, number>();
 
-  const startTime = Date.now();
+    const startTime = Date.now();
 
-  groupTracker.set("api.example.com", 100);
-  groupTracker.set("slow-api.example.com", 5);
+    groupTracker.set("api.example.com", 100);
+    groupTracker.set("slow-api.example.com", 5);
 
-  provider.usePerDomainRateLimit({
-    maxRequests: 50, // Default limit
-    windowSeconds: 60, // 1 minute default window
-    autoUpdateFromHeaders: true,
-    groups: {
-      "api.example.com": {
-        maxRequests: 75, // API will override this with headers
-        windowSeconds: 60,
+    provider.usePerDomainRateLimit({
+      maxRequests: 50, // Default limit
+      windowSeconds: 60, // 1 minute default window
+      autoUpdateFromHeaders: true,
+      groups: {
+        "api.example.com": {
+          maxRequests: 75, // API will override this with headers
+          windowSeconds: 60,
+        },
+        "slow-api.example.com": {
+          maxRequests: 30, // API will override this with headers
+          windowSeconds: 30,
+        },
       },
-      "slow-api.example.com": {
-        maxRequests: 30, // API will override this with headers
-        windowSeconds: 30,
-      },
-    },
-  });
-
-  provider.fetch = (
-    input: RequestInfo | URL,
-    _init?: RequestInit,
-  ): Promise<Response> => {
-    let url: URL;
-    if (input instanceof Request) {
-      url = new URL(input.url);
-    } else {
-      url = new URL(input.toString());
-    }
-
-    const headers = new Headers({
-      "Content-Type": "application/json",
     });
 
-    // Simulate different rate limits for different domains
-    if (url.hostname === "api.example.com") {
-      headers.set("X-RateLimit-Limit", "100");
-      let remaining = groupTracker.get("api.example.com") ?? 0;
-      remaining = remaining > 0 ? remaining - 2 : 0;
-      groupTracker.set("api.example.com", remaining);
-      headers.set("X-RateLimit-Remaining", String(remaining));
-    } else if (url.hostname === "slow-api.example.com") {
-      let remaining = groupTracker.get("slow-api.example.com") ?? 0;
-      remaining = remaining > 0 ? remaining - 2 : 0;
-      groupTracker.set("slow-api.example.com", remaining);
+    provider.fetch = (
+      input: RequestInfo | URL,
+      _init?: RequestInit,
+    ): Promise<Response> => {
+      let url: URL;
+      if (input instanceof Request) {
+        url = new URL(input.url);
+      } else {
+        url = new URL(input.toString());
+      }
 
-      headers.set(
-        "RateLimit-Policy",
-        buildRateLimitPolicyHeader({
-          policy: "slow-api.example.com",
-          limit: 5,
-          windowSeconds: 30,
+      const headers = new Headers({
+        "Content-Type": "application/json",
+      });
+
+      // Simulate different rate limits for different domains
+      if (url.hostname === "api.example.com") {
+        headers.set("X-RateLimit-Limit", "100");
+        let remaining = groupTracker.get("api.example.com") ?? 0;
+        remaining = remaining > 0 ? remaining - 2 : 0;
+        groupTracker.set("api.example.com", remaining);
+        headers.set("X-RateLimit-Remaining", String(remaining));
+      } else if (url.hostname === "slow-api.example.com") {
+        let remaining = groupTracker.get("slow-api.example.com") ?? 0;
+        remaining = remaining > 0 ? remaining - 2 : 0;
+        groupTracker.set("slow-api.example.com", remaining);
+
+        headers.set(
+          "RateLimit-Policy",
+          buildRateLimitPolicyHeader({
+            policy: "slow-api.example.com",
+            limit: 5,
+            windowSeconds: 30,
+          }),
+        );
+        headers.set(
+          "RateLimit",
+          buildRateLimitHeader({
+            policy: "slow-api.example.com",
+            remaining: remaining,
+            resetSeconds: 30 - ((Date.now() - startTime) / 1000),
+          }),
+        );
+      }
+      // other-api.example.com gets no rate limit headers
+
+      return Promise.resolve(
+        new Response(JSON.stringify({ success: true }), {
+          status: 200,
+          statusText: "OK",
+          headers,
         }),
       );
-      headers.set(
-        "RateLimit",
-        buildRateLimitHeader({
-          policy: "slow-api.example.com",
-          remaining: remaining,
-          resetSeconds: 30 - ((Date.now() - startTime) / 1000),
-        }),
-      );
-    }
-    // other-api.example.com gets no rate limit headers
+    };
 
-    return Promise.resolve(
-      new Response(JSON.stringify({ success: true }), {
-        status: 200,
-        statusText: "OK",
-        headers,
-      }),
+    assert(provider.rateLimiter);
+
+    const client = provider.getFetchClient();
+
+    // check API rate limit
+    let apiOptions = provider.rateLimiter.getGroupOptions("api.example.com");
+    assertEquals(apiOptions.maxRequests, 75);
+    assertEquals(apiOptions.windowSeconds, 60);
+
+    const response1 = await client.getJSON(
+      "https://api.example.com/data",
     );
-  };
+    assertEquals(response1.status, 200);
 
-  assert(provider.rateLimiter);
+    apiOptions = provider.rateLimiter.getGroupOptions("api.example.com");
+    assertEquals(apiOptions.maxRequests, 100); // Updated from headers
 
-  const client = provider.getFetchClient();
+    // check slow API rate limit
+    let slowApiOptions = provider.rateLimiter.getGroupOptions(
+      "slow-api.example.com",
+    );
+    assertEquals(slowApiOptions.maxRequests, 30);
+    assertEquals(slowApiOptions.windowSeconds, 30);
 
-  // check API rate limit
-  let apiOptions = provider.rateLimiter.getGroupOptions("api.example.com");
-  assertEquals(apiOptions.maxRequests, 75);
-  assertEquals(apiOptions.windowSeconds, 60);
+    const response2 = await client.getJSON(
+      "https://slow-api.example.com/data",
+    );
+    assertEquals(response2.status, 200);
 
-  const response1 = await client.getJSON(
-    "https://api.example.com/data",
-  );
-  assertEquals(response1.status, 200);
-
-  apiOptions = provider.rateLimiter.getGroupOptions("api.example.com");
-  assertEquals(apiOptions.maxRequests, 100); // Updated from headers
-
-  // check slow API rate limit
-  let slowApiOptions = provider.rateLimiter.getGroupOptions(
-    "slow-api.example.com",
-  );
-  assertEquals(slowApiOptions.maxRequests, 30);
-  assertEquals(slowApiOptions.windowSeconds, 30);
-
-  const response2 = await client.getJSON(
-    "https://slow-api.example.com/data",
-  );
-  assertEquals(response2.status, 200);
-
-  slowApiOptions = provider.rateLimiter.getGroupOptions(
-    "slow-api.example.com",
-  );
-  assertEquals(slowApiOptions.maxRequests, 5); // Updated from headers
-});
+    slowApiOptions = provider.rateLimiter.getGroupOptions(
+      "slow-api.example.com",
+    );
+    assertEquals(slowApiOptions.maxRequests, 5); // Updated from headers
+  },
+);

@@ -1,6 +1,7 @@
 # Rate Limiting
 
-FetchClient includes built-in rate limiting to prevent overwhelming APIs and respect rate limits.
+FetchClient includes built-in rate limiting to prevent overwhelming APIs and
+respect rate limits.
 
 ## Basic Rate Limiting
 
@@ -29,7 +30,8 @@ for (let i = 0; i < 150; i++) {
 
 ## Per-Domain Rate Limiting
 
-Different APIs have different rate limits. Use per-domain rate limiting to track each domain separately:
+Different APIs have different rate limits. Use per-domain rate limiting to track
+each domain separately:
 
 ```ts
 import { usePerDomainRateLimit } from "@foundatiofx/fetchclient";
@@ -105,7 +107,8 @@ if (response.status === 429) {
 
 ## Reading Rate Limit Headers
 
-FetchClient can automatically update rate limits from server response headers. This respects the API's actual limits:
+FetchClient can automatically update rate limits from server response headers.
+This respects the API's actual limits:
 
 ```ts
 const provider = new FetchClientProvider();
@@ -167,7 +170,7 @@ Group requests by custom logic instead of domain:
 ```ts
 import {
   FetchClientProvider,
-  RateLimitMiddleware
+  RateLimitMiddleware,
 } from "@foundatiofx/fetchclient";
 
 const provider = new FetchClientProvider();
@@ -192,7 +195,7 @@ provider.useMiddleware(middleware.middleware());
 import {
   FetchClient,
   FetchClientProvider,
-  RateLimitError
+  RateLimitError,
 } from "@foundatiofx/fetchclient";
 
 const provider = new FetchClientProvider();
@@ -207,7 +210,7 @@ const client = provider.getFetchClient();
 
 async function fetchWithRetry<T>(
   url: string,
-  maxRetries = 3
+  maxRetries = 3,
 ): Promise<T | null> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
@@ -216,7 +219,7 @@ async function fetchWithRetry<T>(
     } catch (error) {
       if (error instanceof RateLimitError) {
         console.log(`Rate limited. Waiting ${error.retryAfter}ms...`);
-        await new Promise(r => setTimeout(r, error.retryAfter));
+        await new Promise((r) => setTimeout(r, error.retryAfter));
         continue;
       }
       throw error;

@@ -1,6 +1,7 @@
 # Error Handling
 
-FetchClient provides flexible error handling with support for expected status codes, custom error callbacks, and RFC 7807 Problem Details.
+FetchClient provides flexible error handling with support for expected status
+codes, custom error callbacks, and RFC 7807 Problem Details.
 
 ## Default Behavior
 
@@ -93,10 +94,10 @@ const response = await client.postJSON("/api/users", {
 });
 
 if (!response.ok) {
-  console.log(response.problem.title);   // "Validation Error"
-  console.log(response.problem.detail);  // "The request was invalid"
-  console.log(response.problem.status);  // 400
-  console.log(response.problem.errors);  // { email: ["Invalid email format"] }
+  console.log(response.problem.title); // "Validation Error"
+  console.log(response.problem.detail); // "The request was invalid"
+  console.log(response.problem.status); // 400
+  console.log(response.problem.errors); // { email: ["Invalid email format"] }
 }
 ```
 
@@ -104,12 +105,12 @@ if (!response.ok) {
 
 ```ts
 interface ProblemDetails {
-  type?: string;      // URI identifying the problem type
-  title?: string;     // Short human-readable summary
-  status?: number;    // HTTP status code
-  detail?: string;    // Detailed explanation
-  instance?: string;  // URI identifying this occurrence
-  errors?: Record<string, string[]>;  // Field-level errors
+  type?: string; // URI identifying the problem type
+  title?: string; // Short human-readable summary
+  status?: number; // HTTP status code
+  detail?: string; // Detailed explanation
+  instance?: string; // URI identifying this occurrence
+  errors?: Record<string, string[]>; // Field-level errors
 }
 ```
 
@@ -134,7 +135,7 @@ problem.errors = {
 Validate request data before sending:
 
 ```ts
-import { setModelValidator, ProblemDetails } from "@foundatiofx/fetchclient";
+import { ProblemDetails, setModelValidator } from "@foundatiofx/fetchclient";
 
 setModelValidator(async (data) => {
   if (!data) return null;
@@ -170,7 +171,7 @@ if (!response.ok) {
 
 ```ts
 import { z } from "zod";
-import { setModelValidator, ProblemDetails } from "@foundatiofx/fetchclient";
+import { ProblemDetails, setModelValidator } from "@foundatiofx/fetchclient";
 
 const UserSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -275,9 +276,9 @@ try {
 
 ```ts
 import {
+  CircuitOpenError,
   FetchClient,
   FetchClientProvider,
-  CircuitOpenError,
   RateLimitError,
 } from "@foundatiofx/fetchclient";
 
@@ -290,7 +291,7 @@ const client = provider.getFetchClient();
 
 async function apiRequest<T>(
   url: string,
-  options?: RequestOptions
+  options?: RequestOptions,
 ): Promise<{ data: T | null; error: string | null }> {
   try {
     const response = await client.getJSON<T>(url, {
@@ -307,7 +308,7 @@ async function apiRequest<T>(
       case 400:
         return {
           data: null,
-          error: response.problem.detail || "Invalid request"
+          error: response.problem.detail || "Invalid request",
         };
       case 401:
         // Redirect to login

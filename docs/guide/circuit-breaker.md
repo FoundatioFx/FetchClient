@@ -1,16 +1,20 @@
 # Circuit Breaker
 
-The circuit breaker pattern prevents cascading failures when an API goes down. Instead of repeatedly hitting a failing service, the circuit breaker "opens" and immediately rejects requests, giving the service time to recover.
+The circuit breaker pattern prevents cascading failures when an API goes down.
+Instead of repeatedly hitting a failing service, the circuit breaker "opens" and
+immediately rejects requests, giving the service time to recover.
 
 ## Why Use a Circuit Breaker?
 
 Without a circuit breaker, when a service fails:
+
 1. Every request waits for a timeout
 2. Your app becomes slow and unresponsive
 3. You waste resources on doomed requests
 4. The failing service gets overwhelmed with retry attempts
 
 With a circuit breaker:
+
 1. After detecting failures, requests fail immediately
 2. Your app stays responsive
 3. The failing service gets breathing room
@@ -40,8 +44,10 @@ With a circuit breaker:
 ```
 
 - **CLOSED**: Normal operation. Requests pass through, failures are tracked.
-- **OPEN**: Circuit tripped. Requests immediately return 503 (Service Unavailable).
-- **HALF_OPEN**: Testing recovery. Limited requests allowed to check if service recovered.
+- **OPEN**: Circuit tripped. Requests immediately return 503 (Service
+  Unavailable).
+- **HALF_OPEN**: Testing recovery. Limited requests allowed to check if service
+  recovered.
 
 ## Basic Usage
 
@@ -52,9 +58,9 @@ const provider = new FetchClientProvider();
 provider.setBaseUrl("https://api.example.com");
 
 provider.useCircuitBreaker({
-  failureThreshold: 5,    // Open after 5 failures
-  openDurationMs: 30000,  // Stay open for 30 seconds
-  successThreshold: 2,    // Close after 2 successes in HALF_OPEN
+  failureThreshold: 5, // Open after 5 failures
+  openDurationMs: 30000, // Stay open for 30 seconds
+  successThreshold: 2, // Close after 2 successes in HALF_OPEN
 });
 
 const client = provider.getFetchClient();
@@ -71,7 +77,8 @@ const response = await client.getJSON("/users");
 
 ## Per-Domain Circuit Breaker
 
-Each domain gets its own circuit breaker, so one failing service doesn't affect others:
+Each domain gets its own circuit breaker, so one failing service doesn't affect
+others:
 
 ```ts
 provider.usePerDomainCircuitBreaker({
@@ -89,13 +96,13 @@ await client.getJSON("https://api2.example.com/data"); // Circuit for api2
 ```ts
 provider.useCircuitBreaker({
   // When to open the circuit
-  failureThreshold: 5,      // Number of failures before opening (default: 5)
-  failureWindowMs: 60000,   // Time window for counting failures (default: 60000)
+  failureThreshold: 5, // Number of failures before opening (default: 5)
+  failureWindowMs: 60000, // Time window for counting failures (default: 60000)
 
   // Recovery
-  openDurationMs: 30000,    // Time to stay OPEN before testing (default: 30000)
-  successThreshold: 2,      // Successes needed to close circuit (default: 2)
-  halfOpenMaxAttempts: 1,   // Max concurrent test requests (default: 1)
+  openDurationMs: 30000, // Time to stay OPEN before testing (default: 30000)
+  successThreshold: 2, // Successes needed to close circuit (default: 2)
+  halfOpenMaxAttempts: 1, // Max concurrent test requests (default: 1)
 
   // What counts as failure
   isFailure: (response) => response.status >= 500,
@@ -105,6 +112,7 @@ provider.useCircuitBreaker({
 ## What Counts as a Failure?
 
 By default, these are treated as failures:
+
 - HTTP 5xx responses (server errors)
 - HTTP 429 responses (rate limited)
 - Network errors (connection refused, timeout, etc.)
@@ -213,7 +221,9 @@ const failures = breaker.getFailureCount("https://api.example.com/users");
 const timeSinceOpen = breaker.getTimeSinceOpen("https://api.example.com/users");
 
 // Time until HALF_OPEN
-const timeUntilHalfOpen = breaker.getTimeUntilHalfOpen("https://api.example.com/users");
+const timeUntilHalfOpen = breaker.getTimeUntilHalfOpen(
+  "https://api.example.com/users",
+);
 ```
 
 ## Combined with Rate Limiting
@@ -224,16 +234,17 @@ Use both patterns together:
 // Rate limiter prevents overwhelming healthy APIs
 provider.useRateLimit({
   maxRequests: 100,
-  windowSeconds: 60
+  windowSeconds: 60,
 });
 
 // Circuit breaker stops requests to failing APIs
 provider.useCircuitBreaker({
-  failureThreshold: 5
+  failureThreshold: 5,
 });
 ```
 
-**Order matters**: Rate limiting happens first. If you're rate limited, the request never reaches the circuit breaker.
+**Order matters**: Rate limiting happens first. If you're rate limited, the
+request never reaches the circuit breaker.
 
 ## Removing Circuit Breaker
 
@@ -245,9 +256,9 @@ provider.removeCircuitBreaker();
 
 ```ts
 import {
-  FetchClientProvider,
   CircuitOpenError,
-  RateLimitError
+  FetchClientProvider,
+  RateLimitError,
 } from "@foundatiofx/fetchclient";
 
 const provider = new FetchClientProvider();
@@ -290,14 +301,15 @@ async function fetchUser(id: string) {
 
 ## Circuit Breaker vs Rate Limiting
 
-| Aspect | Rate Limiter | Circuit Breaker |
-|--------|--------------|-----------------|
-| **Purpose** | Prevent overloading API | Prevent cascading failures |
-| **Trigger** | Request count exceeds limit | Failure count exceeds threshold |
-| **When** | Before request | After response |
-| **Blocks** | Excess requests | All requests to failing service |
+| Aspect       | Rate Limiter                | Circuit Breaker                           |
+| ------------ | --------------------------- | ----------------------------------------- |
+| **Purpose**  | Prevent overloading API     | Prevent cascading failures                |
+| **Trigger**  | Request count exceeds limit | Failure count exceeds threshold           |
+| **When**     | Before request              | After response                            |
+| **Blocks**   | Excess requests             | All requests to failing service           |
 | **Recovery** | Automatic after time window | State machine (OPEN → HALF_OPEN → CLOSED) |
 
 Use both together for maximum resilience:
+
 - Rate limiter keeps you within API limits
 - Circuit breaker handles when things go wrong

@@ -4,6 +4,7 @@
     "./mocks": "./src/mocks/mod.ts"
   },
   "name": "@foundatiofx/fetchclient",
+  "license": "MIT",
   "tasks": {
     "build": "deno run -A scripts/build.ts",
     "check": "deno check scripts/*.ts *.ts src/*.ts src/mocks/*.ts",
@@ -17,5 +18,20 @@
     "@std/path": "jsr:@std/path@^1.1.4",
     "zod": "npm:zod@^4.3.6"
   },
-  "exclude": ["npm", "docs"]
+  "exclude": ["docs/.vitepress", "docs/package-lock.json", "npm"],
+  "publish": {
+    "exclude": [
+      ".claude",
+      ".github",
+      ".vscode",
+      "AGENTS.md",
+      "deno.lock",
+      "docs",
+      "npm",
+      "nul",
+      "samples",
+      "scripts",
+      "src/tests"
+    ]
+  }
 }
