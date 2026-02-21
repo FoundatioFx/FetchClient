@@ -157,9 +157,39 @@ Deno.test("absolute URL ignores baseUrl", async () => {
   assertEquals(requestedUrl, "https://other.example.com/data");
 });
 
-// Note: FetchClient doesn't currently support deep merging of defaultRequestOptions.params
-// with request-specific params. The request params completely replace the defaults.
-// This could be a future enhancement.
+Deno.test("default request params are merged with per-request params", async () => {
+  const mocks = new MockRegistry();
+  mocks.onGet("/search").reply(200, { results: [] });
+
+  const client = new FetchClient({
+    defaultRequestOptions: {
+      params: {
+        limit: 3,
+        sort: "desc",
+      },
+    },
+  });
+
+  let requestedUrl = "";
+  client.use(async (ctx, next) => {
+    requestedUrl = ctx.request.url;
+    await next();
+  });
+
+  mocks.install(client);
+
+  await client.getJSON("https://example.com/search", {
+    params: {
+      page: 2,
+      limit: 10,
+    },
+  });
+
+  const url = new URL(requestedUrl);
+  assertEquals(url.searchParams.get("sort"), "desc");
+  assertEquals(url.searchParams.get("page"), "2");
+  assertEquals(url.searchParams.get("limit"), "10");
+});
 
 Deno.test("array params are handled correctly", async () => {
   const mocks = new MockRegistry();

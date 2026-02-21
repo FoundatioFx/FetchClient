@@ -193,6 +193,87 @@ Deno.test("FetchClientProvider - applyOptions merges options", async () => {
   mocks.restore();
 });
 
+Deno.test("FetchClientProvider - applyOptions deep merges defaultRequestOptions", async () => {
+  const provider = new FetchClientProvider();
+  const mocks = new MockRegistry();
+  mocks.onGet("/users").reply(200, []);
+  mocks.install(provider);
+
+  provider.applyOptions({
+    defaultRequestOptions: {
+      headers: {
+        "X-First": "1",
+      },
+      params: {
+        a: "1",
+      },
+    },
+  });
+
+  provider.applyOptions({
+    defaultRequestOptions: {
+      headers: {
+        "X-Second": "2",
+      },
+      params: {
+        b: "2",
+      },
+    },
+  });
+
+  const client = provider.getFetchClient();
+  await client.getJSON("/users");
+
+  const request = mocks.history.get[0];
+  const url = new URL(request.url);
+  assertEquals(request.headers.get("X-First"), "1");
+  assertEquals(request.headers.get("X-Second"), "2");
+  assertEquals(url.searchParams.get("a"), "1");
+  assertEquals(url.searchParams.get("b"), "2");
+
+  mocks.restore();
+});
+
+Deno.test("FetchClientProvider - getFetchClient deep merges defaultRequestOptions", async () => {
+  const provider = new FetchClientProvider();
+  const mocks = new MockRegistry();
+  mocks.onGet("/users").reply(200, []);
+  mocks.install(provider);
+
+  provider.applyOptions({
+    defaultRequestOptions: {
+      headers: {
+        "X-Provider": "provider",
+      },
+      params: {
+        source: "provider",
+      },
+    },
+  });
+
+  const client = provider.getFetchClient({
+    defaultRequestOptions: {
+      headers: {
+        "X-Client": "client",
+      },
+      params: {
+        scope: "client",
+      },
+    },
+  });
+
+  await client.getJSON("/users");
+
+  const request = mocks.history.get[0];
+  const url = new URL(request.url);
+  assertEquals(request.headers.get("X-Provider"), "provider");
+  assertEquals(request.headers.get("X-Client"), "client");
+  assertEquals(url.searchParams.get("source"), "provider");
+  assertEquals(url.searchParams.get("scope"), "client");
+
+  mocks.restore();
+});
+
 Deno.test("FetchClientProvider - setModelValidator validates request data", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();

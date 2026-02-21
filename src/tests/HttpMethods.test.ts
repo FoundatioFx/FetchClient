@@ -194,6 +194,59 @@ Deno.test("can deleteJSON with client middleware", async () => {
   assertEquals(r.data!.completed, false);
 });
 
+Deno.test("json helpers preserve defaultRequestOptions headers", async () => {
+  const mocks = new MockRegistry();
+  mocks.onGet("/todos/get").reply(200, { ok: true });
+  mocks.onPost("/todos/post").reply(200, { ok: true });
+  mocks.onPut("/todos/put").reply(200, { ok: true });
+  mocks.onPatch("/todos/patch").reply(200, { ok: true });
+  mocks.onDelete("/todos/delete").reply(200, { ok: true });
+
+  const client = new FetchClient({
+    defaultRequestOptions: {
+      headers: {
+        "X-Requested-By": "my-app",
+      },
+    },
+  });
+  mocks.install(client);
+
+  await client.getJSON("https://example.com/todos/get", {
+    headers: {
+      "X-Trace": "get",
+    },
+  });
+  await client.postJSON("https://example.com/todos/post", { id: 1 }, {
+    headers: {
+      "X-Trace": "post",
+    },
+  });
+  await client.putJSON("https://example.com/todos/put", { id: 1 }, {
+    headers: {
+      "X-Trace": "put",
+    },
+  });
+  await client.patchJSON("https://example.com/todos/patch", { id: 1 }, {
+    headers: {
+      "X-Trace": "patch",
+    },
+  });
+  await client.deleteJSON("https://example.com/todos/delete", {
+    headers: {
+      "X-Trace": "delete",
+    },
+  });
+
+  for (const request of mocks.history.all) {
+    assertEquals(request.headers.get("X-Requested-By"), "my-app");
+    assertEquals(
+      request.headers.get("Accept"),
+      "application/json, application/problem+json",
+    );
+    assert(request.headers.get("X-Trace"));
+  }
+});
+
 Deno.test("can delete with 204 no content", async () => {
   const mocks = new MockRegistry();
   mocks.onDelete("/todos/1").reply(204);

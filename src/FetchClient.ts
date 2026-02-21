@@ -38,9 +38,14 @@ export class FetchClient {
     } else {
       this.#provider = optionsOrProvider?.provider ?? getCurrentProvider();
       if (optionsOrProvider) {
+        const providerOptions = this.#provider.options;
         this.#options = {
-          ...this.#provider.options,
+          ...providerOptions,
           ...optionsOrProvider,
+          defaultRequestOptions: this.mergeRequestOptions(
+            providerOptions.defaultRequestOptions,
+            optionsOrProvider.defaultRequestOptions,
+          ),
         };
       }
     }
@@ -130,10 +135,7 @@ export class FetchClient {
     url: string,
     options?: GetRequestOptions,
   ): ResponsePromise<unknown> {
-    const mergedOptions = {
-      ...this.options.defaultRequestOptions,
-      ...options,
-    };
+    const mergedOptions = this.mergeWithDefaultRequestOptions(options);
 
     const responsePromise = this.fetchInternal(
       url,
@@ -173,10 +175,7 @@ export class FetchClient {
     body?: object | string | FormData,
     options?: RequestOptions,
   ): ResponsePromise<unknown> {
-    const mergedOptions = {
-      ...this.options.defaultRequestOptions,
-      ...options,
-    };
+    const mergedOptions = this.mergeWithDefaultRequestOptions(options);
 
     const responsePromise = this.fetchInternal(
       url,
@@ -221,10 +220,7 @@ export class FetchClient {
     body?: object | string | FormData,
     options?: RequestOptions,
   ): ResponsePromise<unknown> {
-    const mergedOptions = {
-      ...this.options.defaultRequestOptions,
-      ...options,
-    };
+    const mergedOptions = this.mergeWithDefaultRequestOptions(options);
 
     const responsePromise = this.fetchInternal(
       url,
@@ -269,10 +265,7 @@ export class FetchClient {
     body?: object | string | FormData,
     options?: RequestOptions,
   ): ResponsePromise<unknown> {
-    const mergedOptions = {
-      ...this.options.defaultRequestOptions,
-      ...options,
-    };
+    const mergedOptions = this.mergeWithDefaultRequestOptions(options);
 
     const responsePromise = this.fetchInternal(
       url,
@@ -316,10 +309,7 @@ export class FetchClient {
     url: string,
     options?: RequestOptions,
   ): ResponsePromise<unknown> {
-    const mergedOptions = {
-      ...this.options.defaultRequestOptions,
-      ...options,
-    };
+    const mergedOptions = this.mergeWithDefaultRequestOptions(options);
 
     const responsePromise = this.fetchInternal(
       url,
@@ -361,10 +351,7 @@ export class FetchClient {
     url: string,
     options?: GetRequestOptions,
   ): ResponsePromise<void> {
-    const mergedOptions = {
-      ...this.options.defaultRequestOptions,
-      ...options,
-    };
+    const mergedOptions = this.mergeWithDefaultRequestOptions(options);
 
     const responsePromise = this.fetchInternal<void>(
       url,
@@ -675,12 +662,61 @@ export class FetchClient {
     options: RequestOptions | undefined,
   ): RequestOptions {
     return {
+      ...options,
       headers: {
         "Accept": "application/json, application/problem+json",
         ...options?.headers,
       },
+    };
+  }
+
+  private mergeWithDefaultRequestOptions(
+    options?: GetRequestOptions,
+  ): GetRequestOptions;
+  private mergeWithDefaultRequestOptions(
+    options?: RequestOptions,
+  ): RequestOptions;
+  private mergeWithDefaultRequestOptions(
+    options?: RequestOptions | GetRequestOptions,
+  ): RequestOptions | GetRequestOptions {
+    return this.mergeRequestOptions(
+      this.options.defaultRequestOptions,
+      options,
+    );
+  }
+
+  private mergeRequestOptions(
+    defaultRequestOptions?: RequestOptions,
+    options?: GetRequestOptions,
+  ): GetRequestOptions;
+  private mergeRequestOptions(
+    defaultRequestOptions?: RequestOptions,
+    options?: RequestOptions,
+  ): RequestOptions;
+  private mergeRequestOptions(
+    defaultRequestOptions?: RequestOptions,
+    options?: RequestOptions | GetRequestOptions,
+  ): RequestOptions | GetRequestOptions {
+    const mergedOptions: RequestOptions | GetRequestOptions = {
+      ...defaultRequestOptions,
       ...options,
     };
+
+    if (defaultRequestOptions?.headers || options?.headers) {
+      mergedOptions.headers = {
+        ...defaultRequestOptions?.headers,
+        ...options?.headers,
+      };
+    }
+
+    if (defaultRequestOptions?.params || options?.params) {
+      mergedOptions.params = {
+        ...defaultRequestOptions?.params,
+        ...options?.params,
+      };
+    }
+
+    return mergedOptions;
   }
 
   private problemToResponse<T>(

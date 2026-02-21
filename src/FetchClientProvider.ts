@@ -140,10 +140,7 @@ export class FetchClientProvider {
    */
   public getFetchClient(options?: FetchClientOptions): FetchClient {
     if (options) {
-      options = {
-        ...this.#options,
-        ...options,
-      };
+      options = this.mergeFetchClientOptions(this.#options, options);
       options.provider = this;
 
       return new FetchClient(options);
@@ -156,10 +153,52 @@ export class FetchClientProvider {
    * Applies the specified options by merging with the current options.
    */
   public applyOptions(options: FetchClientOptions) {
-    this.#options = {
-      ...this.#options,
-      ...options,
+    this.#options = this.mergeFetchClientOptions(this.#options, options);
+  }
+
+  private mergeFetchClientOptions(
+    base: FetchClientOptions,
+    overrides: FetchClientOptions,
+  ): FetchClientOptions {
+    const mergedOptions: FetchClientOptions = {
+      ...base,
+      ...overrides,
     };
+
+    if (base.defaultRequestOptions || overrides.defaultRequestOptions) {
+      mergedOptions.defaultRequestOptions = this.mergeRequestOptions(
+        base.defaultRequestOptions,
+        overrides.defaultRequestOptions,
+      );
+    }
+
+    return mergedOptions;
+  }
+
+  private mergeRequestOptions(
+    defaultRequestOptions?: FetchClientOptions["defaultRequestOptions"],
+    requestOptions?: FetchClientOptions["defaultRequestOptions"],
+  ): FetchClientOptions["defaultRequestOptions"] {
+    const mergedOptions = {
+      ...defaultRequestOptions,
+      ...requestOptions,
+    };
+
+    if (defaultRequestOptions?.headers || requestOptions?.headers) {
+      mergedOptions.headers = {
+        ...defaultRequestOptions?.headers,
+        ...requestOptions?.headers,
+      };
+    }
+
+    if (defaultRequestOptions?.params || requestOptions?.params) {
+      mergedOptions.params = {
+        ...defaultRequestOptions?.params,
+        ...requestOptions?.params,
+      };
+    }
+
+    return mergedOptions;
   }
 
   /**
