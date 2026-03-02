@@ -2,6 +2,7 @@ export { FetchClient } from "./src/FetchClient.ts";
 export type { FetchClientOptions } from "./src/FetchClientOptions.ts";
 export type { FetchClientResponse } from "./src/FetchClientResponse.ts";
 export { FetchClientError } from "./src/FetchClientError.ts";
+export { getStatusText } from "./src/HttpStatusText.ts";
 export { ResponsePromise } from "./src/ResponsePromise.ts";
 export { ProblemDetails } from "./src/ProblemDetails.ts";
 export {

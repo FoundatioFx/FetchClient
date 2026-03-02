@@ -198,7 +198,7 @@ Deno.test("RateLimitMiddleware - returns 429 response when configured", async ()
     const response = (error as { response: FetchClientResponse<unknown> })
       .response;
     assertEquals(response.status, 429);
-    assertEquals(response.problem?.title, "Unexpected status code: 429");
+    assertEquals(response.problem?.title, "Too Many Requests");
     if (response.problem?.detail) {
       assertEquals(
         response.problem.detail.includes("Custom rate limit message"),

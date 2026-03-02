@@ -12,6 +12,7 @@ import type { FetchClientOptions } from "./FetchClientOptions.ts";
 import { type IObjectEvent, ObjectEvent } from "./ObjectEvent.ts";
 import { ResponsePromise } from "./ResponsePromise.ts";
 import { FetchClientError } from "./FetchClientError.ts";
+import { getStatusText } from "./HttpStatusText.ts";
 
 type Fetch = typeof globalThis.fetch;
 type RequestInitWithObjectBody = Omit<RequestInit, "body"> & {
@@ -729,7 +730,7 @@ export class FetchClient {
     return {
       url,
       status: problem.status ?? 422,
-      statusText: problem.title ?? "Unprocessable Entity",
+      statusText: problem.title ?? getStatusText(problem.status ?? 422),
       body: null,
       bodyUsed: true,
       ok: false,
@@ -835,7 +836,9 @@ export class FetchClient {
 
     response.problem ??= new ProblemDetails();
     response.problem.status = response.status;
-    response.problem.title = `Unexpected status code: ${response.status}`;
+    if (!response.problem.title) {
+      response.problem.title = getStatusText(response.status);
+    }
     response.problem.setErrorMessage(response.problem.title);
 
     throw new FetchClientError(response);

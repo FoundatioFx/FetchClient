@@ -1,4 +1,5 @@
 import type { FetchClientResponse } from "./FetchClientResponse.ts";
+import { getStatusText } from "./HttpStatusText.ts";
 
 /**
  * Error wrapper for non-2xx responses.
@@ -14,7 +15,7 @@ export class FetchClientError extends Error {
     super(
       message ??
         response.problem?.title ??
-        `Unexpected status code: ${response.status}`,
+        getStatusText(response.status),
     );
     this.name = "FetchClientError";
     this.response = response;

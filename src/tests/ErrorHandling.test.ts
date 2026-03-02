@@ -148,12 +148,12 @@ Deno.test("handles 400 response with non-JSON text", async () => {
     assert(response.problem);
     assert(response.problem.errors);
     assert(response.problem.title);
-    assertStringIncludes(response.problem.title, "Unexpected status");
+    assertStringIncludes(response.problem.title, "Bad Request");
     assert(response.problem.errors.general);
     assertEquals(response.problem.errors.general.length, 1);
     assertStringIncludes(
       response.problem.errors.general[0],
-      "Unexpected status",
+      "Bad Request",
     );
   }
 
