@@ -181,6 +181,45 @@ Deno.test("handles 400 response with non-JSON text", async () => {
   );
 });
 
+Deno.test("handles 403 with empty body without deserialization error", async () => {
+  const mocks = new MockRegistry();
+  mocks.onPost("/api/resource").reply(403);
+
+  const client = new FetchClient();
+  mocks.install(client);
+
+  // Should throw FetchClientError with status-based message, not a deserialization error
+  const error = await assertRejects(async () => {
+    await client.postJSON("https://example.com/api/resource", {});
+  }, FetchClientError);
+
+  assert(error instanceof FetchClientError);
+  assertEquals(error.status, 403);
+  assert(error.response.problem);
+  assertEquals(error.response.problem.status, 403);
+  assertStringIncludes(error.message, "Forbidden");
+  // Should NOT contain deserialization error
+  assertFalse(error.message.includes("Unable to deserialize"));
+});
+
+Deno.test("handles empty body error response with expectedStatusCodes", async () => {
+  const mocks = new MockRegistry();
+  mocks.onGet("/api/resource").reply(403);
+
+  const client = new FetchClient();
+  mocks.install(client);
+
+  const res = await client.getJSON("https://example.com/api/resource", {
+    expectedStatusCodes: [403],
+  });
+
+  assertFalse(res.ok);
+  assertEquals(res.status, 403);
+  assert(res.problem);
+  // Problem title should not mention deserialization failure
+  assertFalse(res.problem.title?.includes("Unable to deserialize") ?? false);
+});
+
 Deno.test("network error throws TypeError", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/flaky").networkError("Connection refused");

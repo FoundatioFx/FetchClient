@@ -566,12 +566,14 @@ export class FetchClient {
     let bodyText = "";
     try {
       bodyText = await response.text();
-      if (options.reviver || options.shouldParseDates) {
-        data = JSON.parse(bodyText, (key, value) => {
-          return this.reviveJsonValue(options, key, value);
-        });
-      } else {
-        data = JSON.parse(bodyText);
+      if (bodyText) {
+        if (options.reviver || options.shouldParseDates) {
+          data = JSON.parse(bodyText, (key, value) => {
+            return this.reviveJsonValue(options, key, value);
+          });
+        } else {
+          data = JSON.parse(bodyText);
+        }
       }
     } catch (error: unknown) {
       data = new ProblemDetails();
