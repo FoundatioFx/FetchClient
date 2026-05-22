@@ -8,7 +8,7 @@
   "description": "A typed JSON fetch client with middleware, caching, rate limiting, and provider-based configuration for Deno, Node, and modern runtimes.",
   "license": "MIT",
   "tasks": {
-    "build": "mkdir -p npm && deno pack --allow-dirty --output npm/fetchclient.tgz",
+    "build": "deno pack --allow-dirty --output fetchclient.tgz",
     "check": "deno check *.ts src/*.ts src/mocks/*.ts",
     "format-check": "deno fmt --check",
     "lint": "deno lint",

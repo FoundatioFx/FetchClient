@@ -55,7 +55,7 @@ concrete, and specific to FetchClient.
 - Type check: `deno task check`
 - Lint/format: `deno task lint`, `deno task format-check`
 - Build npm package: `deno task build` (uses `deno pack` and emits
-  `npm/fetchclient.tgz`)
+  `fetchclient.tgz`)
 
 ## 5) Common tasks (examples)
 

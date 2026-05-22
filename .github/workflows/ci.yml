@@ -87,7 +87,7 @@ jobs:
         run: deno task build --set-version ${{ needs.lint.outputs.version }}
 
       - name: Show NPM Package
-        run: tar -xOf npm/fetchclient.tgz package/package.json
+        run: tar -xOf fetchclient.tgz package/package.json
 
       - name: Setup Node.js environment
         uses: actions/setup-node@v6
@@ -98,7 +98,7 @@ jobs:
 
       - name: Publish Release Package
         if: startsWith(github.ref, 'refs/tags/v')
-        run: npm publish npm/fetchclient.tgz --provenance --access public
+        run: npm publish fetchclient.tgz --provenance --access public
 
       - name: Setup GitHub CI Node.js environment
         if: github.event_name != 'pull_request'
@@ -110,6 +110,6 @@ jobs:
 
       - name: Push GitHub CI Packages
         if: github.event_name != 'pull_request'
-        run: npm publish npm/fetchclient.tgz --tag ${{ startsWith(github.ref, 'refs/tags/v') && 'latest' || 'next' }} --access public
+        run: npm publish fetchclient.tgz --tag ${{ startsWith(github.ref, 'refs/tags/v') && 'latest' || 'next' }} --access public
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
