@@ -10,8 +10,9 @@
     "preview": "vitepress preview"
   },
   "devDependencies": {
-    "vitepress": "^2.0.0-alpha.15",
-    "vitepress-plugin-mermaid": "^2.0.17",
-    "vitepress-plugin-llms": "^1.10.0"
+    "mermaid": "^11.15.0",
+    "vitepress": "^2.0.0-alpha.17",
+    "vitepress-plugin-llms": "^1.12.2",
+    "vitepress-plugin-mermaid": "^2.0.17"
   }
 }
