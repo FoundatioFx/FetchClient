@@ -29,6 +29,9 @@ handling.
 npm install @foundatiofx/fetchclient
 ```
 
+FetchClient is ESM-only and targets modern browsers, Deno, and current Node.js
+versions.
+
 ## Quick Example
 
 FetchClient works two ways - pick whichever style you prefer:

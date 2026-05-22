@@ -5,8 +5,8 @@
 - Run tests: `deno test --allow-net`
 - Lint: `deno lint`
 - Format: `deno fmt`
-- Type check: `deno check scripts/*.ts *.ts src/*.ts`
-- Build npm package: `deno run -A scripts/build.ts`
+- Type check: `deno task check`
+- Build npm package: `deno task build`
 
 ## Docs
 
