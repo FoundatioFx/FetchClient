@@ -6,7 +6,7 @@
 - Lint: `deno lint`
 - Format: `deno fmt`
 - Type check: `deno task check`
-- Build npm package: `deno task build`
+- Build npm package: `deno task build --set-version 0.0.0`
 
 ## Docs
 
