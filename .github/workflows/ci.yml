@@ -84,7 +84,7 @@ jobs:
           deno-version: v2.x
 
       - name: Build NPM Package
-        run: deno task build ${{ needs.lint.outputs.version }}
+        run: deno task build --set-version ${{ needs.lint.outputs.version }}
 
       - name: Show NPM Package
         run: tar -xOf npm/fetchclient.tgz package/package.json

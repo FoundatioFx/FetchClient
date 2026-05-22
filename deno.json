@@ -4,11 +4,12 @@
     "./mocks": "./src/mocks/mod.ts"
   },
   "name": "@foundatiofx/fetchclient",
+  "version": "0.0.0",
   "description": "A typed JSON fetch client with middleware, caching, rate limiting, and provider-based configuration for Deno, Node, and modern runtimes.",
   "license": "MIT",
   "tasks": {
-    "build": "deno run -A scripts/build.ts",
-    "check": "deno check scripts/*.ts *.ts src/*.ts src/mocks/*.ts",
+    "build": "mkdir -p npm && deno pack --allow-dirty --output npm/fetchclient.tgz",
+    "check": "deno check *.ts src/*.ts src/mocks/*.ts",
     "format-check": "deno fmt --check",
     "lint": "deno lint",
     "test": "deno test --allow-net"
