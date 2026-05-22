@@ -14,9 +14,9 @@
     "test": "deno test --allow-net"
   },
   "imports": {
-    "@std/assert": "jsr:@std/assert@^1.0.17",
+    "@std/assert": "jsr:@std/assert@^1.0.19",
     "@std/path": "jsr:@std/path@^1.1.4",
-    "zod": "npm:zod@^4.3.6"
+    "zod": "npm:zod@^4.4.3"
   },
   "exclude": ["docs/.vitepress", "docs/package-lock.json", "npm"],
   "publish": {
