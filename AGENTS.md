@@ -23,7 +23,7 @@ concrete, and specific to FetchClient.
   `src/RateLimitMiddleware.ts`, `src/LinkHeader.ts`, `src/ObjectEvent.ts`,
   `src/Counter.ts`
 - Tests: `src/*test.ts`
-- Build tooling: `scripts/build.ts`, tasks in `deno.json`
+- Build tooling: tasks in `deno.json`
 
 ## 3) How it works (architecture)
 
@@ -54,8 +54,8 @@ concrete, and specific to FetchClient.
 - Run tests (net allowed): `deno task test`
 - Type check: `deno task check`
 - Lint/format: `deno task lint`, `deno task format-check`
-- Build npm package: `deno task build` (dnt emits to `npm/` CJS + `.d.ts`;
-  copies `license` and `readme.md`)
+- Build npm package: `deno task build --set-version 0.0.0` (uses `deno pack` and
+  emits `fetchclient.tgz`)
 
 ## 5) Common tasks (examples)
 
