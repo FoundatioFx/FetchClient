@@ -439,18 +439,14 @@ export class FetchClient {
   ): Promise<FetchClientResponse<T>> {
     const { builtUrl, absoluteUrl } = this.buildUrl(url, options);
 
-    // if we have a body and it's not FormData, validate it before proceeding
-    if (init?.body && !(init?.body instanceof FormData)) {
+    if (this.isJsonLikeObject(init?.body)) {
       const problem = await this.validate(init?.body, options);
       if (problem) {
         return this.problemToResponse<T>(problem, url);
       }
     }
 
-    if (
-      init?.body && typeof init.body === "object" &&
-      !(init.body instanceof FormData)
-    ) {
+    if (this.isJsonLikeObject(init?.body)) {
       init.body = JSON.stringify(init.body);
     }
 
@@ -691,13 +687,8 @@ export class FetchClient {
     body: object | string | FormData | undefined,
     options: RequestOptions | undefined,
   ): RequestInitWithObjectBody {
-    const isFormData = typeof FormData !== "undefined" &&
-      body instanceof FormData;
-    const isJsonLikeObject = body !== undefined && body !== null &&
-      typeof body === "object" && !isFormData;
-
     const headers: Record<string, string> = {};
-    if (isJsonLikeObject) {
+    if (this.isJsonLikeObject(body)) {
       headers["Content-Type"] = "application/json";
     }
 
@@ -709,6 +700,41 @@ export class FetchClient {
       },
       body,
     };
+  }
+
+  private isJsonLikeObject(body: unknown): body is object {
+    if (body === null || typeof body !== "object") {
+      return false;
+    }
+
+    if (typeof FormData !== "undefined" && body instanceof FormData) {
+      return false;
+    }
+
+    if (typeof Blob !== "undefined" && body instanceof Blob) {
+      return false;
+    }
+
+    if (
+      typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams
+    ) {
+      return false;
+    }
+
+    if (
+      typeof ArrayBuffer !== "undefined" &&
+      (body instanceof ArrayBuffer || ArrayBuffer.isView(body))
+    ) {
+      return false;
+    }
+
+    if (
+      typeof ReadableStream !== "undefined" && body instanceof ReadableStream
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   private buildJsonRequestOptions(
