@@ -1,4 +1,4 @@
-import { assert, assertEquals, assertFalse } from "@std/assert";
+import { assert, assertEquals, assertFalse, assertRejects } from "@std/assert";
 import { FetchClient } from "../FetchClient.ts";
 import { FetchClientProvider } from "../FetchClientProvider.ts";
 import { MockRegistry } from "../mocks/MockRegistry.ts";
@@ -82,6 +82,72 @@ Deno.test("can queryJSON with client middleware", async () => {
   assert(called);
   assertEquals(response.data, [{ id: 1, title: "Match" }]);
   assertEquals(mocks.history.query.length, 1);
+});
+
+Deno.test("queryJSON sends string content as application/json", async () => {
+  const mocks = new MockRegistry();
+  mocks.onQuery("/todos/search").reply(200, []);
+
+  const client = new FetchClient();
+  mocks.install(client);
+
+  await client.queryJSON(
+    "https://example.com/todos/search",
+    JSON.stringify({ completed: false }),
+  );
+
+  const request = mocks.history.query[0];
+  assertEquals(request.headers.get("Content-Type"), "application/json");
+  assertEquals(await request.text(), '{"completed":false}');
+});
+
+Deno.test("query preserves URLSearchParams content", async () => {
+  const mocks = new MockRegistry();
+  mocks.onQuery("/todos/search").reply(200, []);
+
+  const client = new FetchClient();
+  mocks.install(client);
+
+  await client.query(
+    "https://example.com/todos/search",
+    new URLSearchParams({ completed: "false" }),
+  );
+
+  const request = mocks.history.query[0];
+  assertEquals(
+    request.headers.get("Content-Type"),
+    "application/x-www-form-urlencoded;charset=UTF-8",
+  );
+  assertEquals(await request.text(), "completed=false");
+});
+
+Deno.test("query preserves Blob content", async () => {
+  const mocks = new MockRegistry();
+  mocks.onQuery("/todos/search").reply(200, []);
+
+  const client = new FetchClient();
+  mocks.install(client);
+
+  await client.query(
+    "https://example.com/todos/search",
+    new Blob(["completed = false"], { type: "application/sql" }),
+  );
+
+  const request = mocks.history.query[0];
+  assertEquals(request.headers.get("Content-Type"), "application/sql");
+  assertEquals(await request.text(), "completed = false");
+});
+
+Deno.test("query rejects requests without content", async () => {
+  const mocks = new MockRegistry();
+  mocks.onQuery("/todos/search").reply(200, []);
+
+  const client = new FetchClient();
+  mocks.install(client);
+
+  await assertRejects(async () => {
+    await client.query("https://example.com/todos/search");
+  });
 });
 
 Deno.test("can postJSON with client middleware", async () => {
