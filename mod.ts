@@ -10,7 +10,10 @@ export {
   type CacheTag,
   FetchClientCache,
 } from "./src/FetchClientCache.ts";
-export type { RequestOptions } from "./src/RequestOptions.ts";
+export type {
+  QueryRequestOptions,
+  RequestOptions,
+} from "./src/RequestOptions.ts";
 export type { FetchClientMiddleware } from "./src/FetchClientMiddleware.ts";
 export type { FetchClientContext } from "./src/FetchClientContext.ts";
 export {
@@ -65,11 +68,13 @@ import {
   patchJSON,
   postJSON,
   putJSON,
+  queryJSON,
   useFetchClient,
   useMiddleware,
 } from "./src/DefaultHelpers.ts";
 import type {
   GetRequestOptions,
+  QueryRequestOptions,
   RequestOptions,
 } from "./src/RequestOptions.ts";
 import type { ResponsePromise } from "./src/ResponsePromise.ts";
@@ -125,6 +130,13 @@ const fetchClient = {
   get: (url: string, options?: GetRequestOptions): ResponsePromise<unknown> =>
     useFetchClient().get(url, options),
 
+  /** Sends a QUERY request. Use `.json<T>()` for typed JSON response. */
+  query: (
+    url: string,
+    body?: object | string | FormData,
+    options?: QueryRequestOptions,
+  ): ResponsePromise<unknown> => useFetchClient().query(url, body, options),
+
   /** Sends a POST request. Use `.json<T>()` for typed JSON response. */
   post: (
     url: string,
@@ -156,6 +168,9 @@ const fetchClient = {
 
   /** Sends a GET request and returns parsed JSON in response.data */
   getJSON,
+
+  /** Sends a QUERY request and returns parsed JSON in response.data */
+  queryJSON,
 
   /** Sends a POST request and returns parsed JSON in response.data */
   postJSON,

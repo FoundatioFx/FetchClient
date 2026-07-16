@@ -36,6 +36,8 @@ export interface MockHistory {
   readonly get: Request[];
   /** HEAD requests */
   readonly head: Request[];
+  /** QUERY requests */
+  readonly query: Request[];
   /** POST requests */
   readonly post: Request[];
   /** PUT requests */
