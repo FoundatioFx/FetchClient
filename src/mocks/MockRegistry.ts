@@ -8,6 +8,7 @@ type Fetch = typeof globalThis.fetch;
 class MockHistoryImpl implements MockHistory {
   #get: Request[] = [];
   #head: Request[] = [];
+  #query: Request[] = [];
   #post: Request[] = [];
   #put: Request[] = [];
   #patch: Request[] = [];
@@ -20,6 +21,10 @@ class MockHistoryImpl implements MockHistory {
 
   get head(): Request[] {
     return [...this.#head];
+  }
+
+  get query(): Request[] {
+    return [...this.#query];
   }
 
   get post(): Request[] {
@@ -52,6 +57,9 @@ class MockHistoryImpl implements MockHistory {
       case "HEAD":
         this.#head.push(request);
         break;
+      case "QUERY":
+        this.#query.push(request);
+        break;
       case "POST":
         this.#post.push(request);
         break;
@@ -70,6 +78,7 @@ class MockHistoryImpl implements MockHistory {
   clear(): void {
     this.#get = [];
     this.#head = [];
+    this.#query = [];
     this.#post = [];
     this.#put = [];
     this.#patch = [];
@@ -126,6 +135,14 @@ export class MockRegistry {
    */
   onHead(url: string | RegExp): MockResponseBuilder<MockRegistry> {
     return this.#addMock("HEAD", url);
+  }
+
+  /**
+   * Creates a mock for QUERY requests matching the given URL.
+   * @param url - URL string or RegExp to match
+   */
+  onQuery(url: string | RegExp): MockResponseBuilder<MockRegistry> {
+    return this.#addMock("QUERY", url);
   }
 
   /**

@@ -17,7 +17,7 @@ hero:
 features:
   - icon: ⚡
     title: Typed JSON Helpers
-    details: getJSON, postJSON, putJSON, patchJSON, deleteJSON with full TypeScript support.
+    details: getJSON, queryJSON, postJSON, putJSON, patchJSON, deleteJSON with full TypeScript support.
   - icon: 🎯
     title: Two API Styles
     details: Use simple functions or classes - your choice. Both have full access to all features.

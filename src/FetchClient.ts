@@ -1,5 +1,9 @@
 import { Counter } from "./Counter.ts";
-import type { GetRequestOptions, RequestOptions } from "./RequestOptions.ts";
+import type {
+  GetRequestOptions,
+  QueryRequestOptions,
+  RequestOptions,
+} from "./RequestOptions.ts";
 import { ProblemDetails } from "./ProblemDetails.ts";
 import type { FetchClientResponse } from "./FetchClientResponse.ts";
 import type { FetchClientMiddleware } from "./FetchClientMiddleware.ts";
@@ -161,6 +165,52 @@ export class FetchClient {
   ): Promise<FetchClientResponse<T>> {
     const mergedOptions = this.buildJsonRequestOptions(options);
     return await this.get(url, mergedOptions) as FetchClientResponse<T>;
+  }
+
+  /**
+   * Sends a safe, idempotent QUERY request to the specified URL.
+   *
+   * @param url - The URL to send the request to.
+   * @param body - The query content, which can be an object, a string, or FormData.
+   * @param options - Additional options for the request.
+   * @returns A ResponsePromise that resolves to the response. Can use `.json<T>()` for typed JSON.
+   */
+  query(
+    url: string,
+    body?: object | string | FormData,
+    options?: QueryRequestOptions,
+  ): ResponsePromise<unknown> {
+    const mergedOptions = this.mergeWithDefaultRequestOptions(options);
+
+    const responsePromise = this.fetchInternal(
+      url,
+      mergedOptions,
+      this.buildRequestInit("QUERY", body, mergedOptions),
+    );
+
+    return new ResponsePromise(responsePromise, mergedOptions);
+  }
+
+  /**
+   * Sends a QUERY request with JSON content to the specified URL.
+   * The response will have the parsed JSON in `response.data`.
+   *
+   * @template T - The type of the response data.
+   * @param url - The URL to send the request to.
+   * @param body - The query content to send with the request.
+   * @param options - Additional options for the request.
+   * @returns A promise that resolves to the response with parsed JSON in `data`.
+   */
+  async queryJSON<T>(
+    url: string,
+    body?: object | string | FormData,
+    options?: QueryRequestOptions,
+  ): Promise<FetchClientResponse<T>> {
+    return await this.query(
+      url,
+      body,
+      this.buildJsonRequestOptions(options),
+    ) as FetchClientResponse<T>;
   }
 
   /**
@@ -389,18 +439,14 @@ export class FetchClient {
   ): Promise<FetchClientResponse<T>> {
     const { builtUrl, absoluteUrl } = this.buildUrl(url, options);
 
-    // if we have a body and it's not FormData, validate it before proceeding
-    if (init?.body && !(init?.body instanceof FormData)) {
+    if (this.isJsonLikeObject(init?.body)) {
       const problem = await this.validate(init?.body, options);
       if (problem) {
         return this.problemToResponse<T>(problem, url);
       }
     }
 
-    if (
-      init?.body && typeof init.body === "object" &&
-      !(init.body instanceof FormData)
-    ) {
+    if (this.isJsonLikeObject(init?.body)) {
       init.body = JSON.stringify(init.body);
     }
 
@@ -637,17 +683,12 @@ export class FetchClient {
   }
 
   private buildRequestInit(
-    method: "GET" | "HEAD" | "POST" | "PUT" | "PATCH" | "DELETE",
+    method: "GET" | "HEAD" | "QUERY" | "POST" | "PUT" | "PATCH" | "DELETE",
     body: object | string | FormData | undefined,
     options: RequestOptions | undefined,
   ): RequestInitWithObjectBody {
-    const isFormData = typeof FormData !== "undefined" &&
-      body instanceof FormData;
-    const isJsonLikeObject = body !== undefined && body !== null &&
-      typeof body === "object" && !isFormData;
-
     const headers: Record<string, string> = {};
-    if (isJsonLikeObject) {
+    if (this.isJsonLikeObject(body)) {
       headers["Content-Type"] = "application/json";
     }
 
@@ -659,6 +700,41 @@ export class FetchClient {
       },
       body,
     };
+  }
+
+  private isJsonLikeObject(body: unknown): body is object {
+    if (body === null || typeof body !== "object") {
+      return false;
+    }
+
+    if (typeof FormData !== "undefined" && body instanceof FormData) {
+      return false;
+    }
+
+    if (typeof Blob !== "undefined" && body instanceof Blob) {
+      return false;
+    }
+
+    if (
+      typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams
+    ) {
+      return false;
+    }
+
+    if (
+      typeof ArrayBuffer !== "undefined" &&
+      (body instanceof ArrayBuffer || ArrayBuffer.isView(body))
+    ) {
+      return false;
+    }
+
+    if (
+      typeof ReadableStream !== "undefined" && body instanceof ReadableStream
+    ) {
+      return false;
+    }
+
+    return true;
   }
 
   private buildJsonRequestOptions(

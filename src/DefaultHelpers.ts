@@ -10,7 +10,11 @@ import type { FetchClientResponse } from "./FetchClientResponse.ts";
 import type { ProblemDetails } from "./ProblemDetails.ts";
 import type { RateLimitMiddlewareOptions } from "./RateLimitMiddleware.ts";
 import type { CircuitBreakerMiddlewareOptions } from "./CircuitBreakerMiddleware.ts";
-import type { GetRequestOptions, RequestOptions } from "./RequestOptions.ts";
+import type {
+  GetRequestOptions,
+  QueryRequestOptions,
+  RequestOptions,
+} from "./RequestOptions.ts";
 
 let getCurrentProviderFunc: () => FetchClientProvider | null = () => null;
 
@@ -33,6 +37,23 @@ export function getJSON<T>(
   options?: GetRequestOptions,
 ): Promise<FetchClientResponse<T>> {
   return useFetchClient().getJSON(url, options);
+}
+
+/**
+ * Sends a QUERY request with JSON content using the default client and provider.
+ *
+ * @template T - The type of the response data.
+ * @param url - The URL to send the request to.
+ * @param body - The query content to send with the request.
+ * @param options - Additional options for the request.
+ * @returns A promise that resolves to the response with parsed JSON in `data`.
+ */
+export function queryJSON<T>(
+  url: string,
+  body?: object | string | FormData,
+  options?: QueryRequestOptions,
+): Promise<FetchClientResponse<T>> {
+  return useFetchClient().queryJSON(url, body, options);
 }
 
 /**

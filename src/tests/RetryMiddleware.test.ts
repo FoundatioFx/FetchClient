@@ -364,6 +364,27 @@ Deno.test("RetryMiddleware - HEAD method is retried by default", async () => {
   assertEquals(mocks.history.head.length, 2);
 });
 
+Deno.test("RetryMiddleware - QUERY method is retried by default", async () => {
+  const mocks = new MockRegistry();
+  mocks.onQuery("/api/search").replyOnce(503, { error: "Unavailable" });
+  mocks.onQuery("/api/search").reply(200, { results: [1] });
+
+  const provider = new FetchClientProvider();
+  provider.useRetry({ limit: 2, jitter: 0, delay: () => 10 });
+  mocks.install(provider);
+
+  const client = provider.getFetchClient();
+  const response = await client.queryJSON<{ results: number[] }>(
+    "https://example.com/api/search",
+    { term: "test" },
+    { expectedStatusCodes: [503] },
+  );
+
+  assertEquals(response.status, 200);
+  assertEquals(response.data, { results: [1] });
+  assertEquals(mocks.history.query.length, 2);
+});
+
 Deno.test("RetryMiddleware - does not retry on 4xx status by default", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(404, { error: "Not Found" });

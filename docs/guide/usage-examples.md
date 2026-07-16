@@ -12,6 +12,11 @@ import fc from "@foundatiofx/fetchclient";
 // GET with typed JSON response
 const { data: user } = await fc.getJSON<User>("/api/users/1");
 
+// Safe, idempotent QUERY with body content
+const { data: matches } = await fc.queryJSON<User[]>("/api/users/search", {
+  name: "Alice",
+});
+
 // POST with body
 const { data: created } = await fc.postJSON<User>("/api/users", {
   name: "Alice",

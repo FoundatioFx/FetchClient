@@ -79,3 +79,11 @@ export type GetRequestOptions = RequestOptions & {
    */
   cacheTags?: CacheTag[];
 };
+
+/**
+ * Represents the options for a QUERY request.
+ * QUERY responses are cacheable, so these options include the same explicit
+ * cache controls as GET requests. A caller-provided cache key must distinguish
+ * requests with different query content.
+ */
+export type QueryRequestOptions = GetRequestOptions;

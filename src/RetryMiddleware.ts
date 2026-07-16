@@ -8,6 +8,7 @@ import type { FetchClientMiddleware } from "./FetchClientMiddleware.ts";
 const DEFAULT_RETRY_METHODS = [
   "GET",
   "HEAD",
+  "QUERY",
   "PUT",
   "DELETE",
   "OPTIONS",
@@ -39,7 +40,7 @@ export interface RetryMiddlewareOptions {
 
   /**
    * HTTP methods eligible for retry.
-   * @default ['GET', 'HEAD', 'PUT', 'DELETE', 'OPTIONS', 'TRACE']
+   * @default ['GET', 'HEAD', 'QUERY', 'PUT', 'DELETE', 'OPTIONS', 'TRACE']
    */
   methods?: string[];
 
@@ -161,6 +162,7 @@ export class RetryMiddleware {
       }
 
       let attemptNumber = 0;
+      let nextRequest = context.request.body ? context.request.clone() : null;
 
       while (true) {
         // Store retry metadata in context for observability
@@ -215,6 +217,10 @@ export class RetryMiddleware {
 
         // Reset response for next attempt
         context.response = null;
+        if (nextRequest) {
+          context.request = nextRequest;
+          nextRequest = nextRequest.clone();
+        }
         attemptNumber++;
       }
     };

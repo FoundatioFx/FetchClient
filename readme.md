@@ -12,8 +12,8 @@ handling.
 
 ## Features
 
-- **Typed JSON helpers** - `getJSON`, `postJSON`, `putJSON`, `patchJSON`,
-  `deleteJSON`
+- **Typed JSON helpers** - `getJSON`, `queryJSON`, `postJSON`, `putJSON`,
+  `patchJSON`, `deleteJSON`
 - **Two API styles** - Functional or class-based - your choice
 - **Response caching** - TTL-based caching with tags for grouped invalidation
 - **Middleware** - Intercept requests/responses for logging, auth, transforms

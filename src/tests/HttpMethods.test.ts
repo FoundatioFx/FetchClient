@@ -54,6 +54,73 @@ Deno.test("can getJSON with client middleware", async () => {
   assertFalse(provider.isLoading);
 });
 
+Deno.test("can queryJSON with client middleware", async () => {
+  const mocks = new MockRegistry();
+  mocks.onQuery("/todos/search").reply(200, [{ id: 1, title: "Match" }]);
+
+  const client = new FetchClient();
+  mocks.install(client);
+
+  let called = false;
+  client.use(async (ctx, next) => {
+    assertEquals(ctx.request.method, "QUERY");
+    assertEquals(ctx.request.headers.get("Content-Type"), "application/json");
+    assertEquals(
+      ctx.request.headers.get("Accept"),
+      "application/json, application/problem+json",
+    );
+    assertEquals(await ctx.request.clone().json(), { completed: false });
+    called = true;
+    await next();
+  });
+
+  const response = await client.queryJSON<Array<Pick<Todo, "id" | "title">>>(
+    "https://example.com/todos/search",
+    { completed: false },
+  );
+
+  assert(called);
+  assertEquals(response.data, [{ id: 1, title: "Match" }]);
+  assertEquals(mocks.history.query.length, 1);
+});
+
+Deno.test("query sends application/x-www-form-urlencoded content", async () => {
+  const mocks = new MockRegistry();
+  mocks.onQuery("/feed").reply(200, []);
+
+  const client = new FetchClient();
+  mocks.install(client);
+
+  await client.query(
+    "https://example.com/feed",
+    new URLSearchParams({ q: "foo", limit: "10", sort: "-published" }),
+  );
+
+  const request = mocks.history.query[0];
+  assertEquals(
+    request.headers.get("Content-Type"),
+    "application/x-www-form-urlencoded;charset=UTF-8",
+  );
+  assertEquals(await request.text(), "q=foo&limit=10&sort=-published");
+});
+
+Deno.test("query sends application/sql content", async () => {
+  const mocks = new MockRegistry();
+  mocks.onQuery("/rfc-index.xml").reply(200, []);
+
+  const client = new FetchClient();
+  mocks.install(client);
+
+  await client.query(
+    "https://example.com/rfc-index.xml",
+    new Blob(["SELECT * FROM rfc_index"], { type: "application/sql" }),
+  );
+
+  const request = mocks.history.query[0];
+  assertEquals(request.headers.get("Content-Type"), "application/sql");
+  assertEquals(await request.text(), "SELECT * FROM rfc_index");
+});
+
 Deno.test("can postJSON with client middleware", async () => {
   const mocks = new MockRegistry();
   mocks.onPost("/todos/1").reply(200, {
@@ -469,6 +536,33 @@ Deno.test("default export fc.getJSON<T>() works", async () => {
   assertEquals(response.status, 200);
   assertEquals(response.data?.id, 2);
   assertEquals(response.data?.name, "Another User");
+});
+
+Deno.test("default and named QUERY exports work", async () => {
+  const {
+    default: fc,
+    defaultProviderInstance,
+    queryJSON,
+  } = await import("../../mod.ts");
+
+  const mocks = new MockRegistry();
+  mocks.onQuery("/api/search").reply(200, [{ id: 1 }]);
+  mocks.onQuery("/api/count").reply(200, { count: 1 });
+  mocks.install(defaultProviderInstance);
+
+  const searchResponse = await queryJSON<Array<{ id: number }>>(
+    "https://example.com/api/search",
+    { term: "test" },
+  );
+  const count = await fc.query(
+    "https://example.com/api/count",
+    { term: "test" },
+    { headers: { Accept: "application/json" } },
+  ).json<{ count: number }>();
+
+  assertEquals(searchResponse.data, [{ id: 1 }]);
+  assertEquals(count, { count: 1 });
+  assertEquals(mocks.history.query.length, 2);
 });
 
 Deno.test("default export fc.use(fc.middleware.retry()) works", async () => {
