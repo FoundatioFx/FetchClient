@@ -15,7 +15,10 @@ import { getCurrentProvider } from "./DefaultHelpers.ts";
 import type { FetchClientOptions } from "./FetchClientOptions.ts";
 import { type IObjectEvent, ObjectEvent } from "./ObjectEvent.ts";
 import { ResponsePromise } from "./ResponsePromise.ts";
-import { FetchClientError } from "./FetchClientError.ts";
+import {
+  FetchClientDeserializationError,
+  FetchClientError,
+} from "./FetchClientError.ts";
 import { getStatusText } from "./HttpStatusText.ts";
 
 type Fetch = typeof globalThis.fetch;
@@ -497,7 +500,11 @@ export class FetchClient {
             "application/problem+json",
           )
         ) {
-          ctx.response = await this.getJSONResponse<T>(response, ctx.options);
+          ctx.response = await this.getJSONResponse<T>(
+            response,
+            ctx.options,
+            ctx.request.signal,
+          );
         } else {
           ctx.response = response as FetchClientResponse<T>;
           ctx.response.data = null;
@@ -558,14 +565,23 @@ export class FetchClient {
       meta: {},
     };
 
-    await this.invokeMiddleware(context, middleware);
+    try {
+      await this.invokeMiddleware(context, middleware);
+      this.validateResponse(context.response, options);
+      return context.response as FetchClientResponse<T>;
+    } catch (error) {
+      if (
+        error instanceof FetchClientDeserializationError &&
+        options.errorCallback?.(error.response) === true
+      ) {
+        return error.response as FetchClientResponse<T>;
+      }
 
-    this.#counter.decrement();
-    this.#provider.counter.decrement();
-
-    this.validateResponse(context.response, options);
-
-    return context.response as FetchClientResponse<T>;
+      throw error;
+    } finally {
+      this.#counter.decrement();
+      this.#provider.counter.decrement();
+    }
   }
 
   private async invokeMiddleware(
@@ -607,6 +623,7 @@ export class FetchClient {
   private async getJSONResponse<T>(
     response: Response,
     options: RequestOptions,
+    signal: AbortSignal,
   ): Promise<FetchClientResponse<T>> {
     let data = null;
     let bodyText = "";
@@ -622,12 +639,37 @@ export class FetchClient {
         }
       }
     } catch (error: unknown) {
-      data = new ProblemDetails();
-      data.detail = bodyText;
-      data.title = `Unable to deserialize response data: ${
+      if (signal.aborted) {
+        throw signal.reason;
+      }
+
+      if (error instanceof DOMException && error.name === "AbortError") {
+        throw error;
+      }
+
+      const problem = new ProblemDetails();
+      problem.detail = bodyText;
+      problem.title = `Unable to deserialize response data: ${
         error instanceof Error ? error.message : String(error)
       }`;
-      data.setErrorMessage(data.title);
+      problem.setErrorMessage(problem.title);
+
+      if (response.ok) {
+        const jsonResponse = response as FetchClientResponse<T>;
+        jsonResponse.data = null;
+        jsonResponse.problem = problem;
+        jsonResponse.meta = {
+          links: parseLinkHeader(response.headers.get("Link")) || {},
+        };
+
+        throw new FetchClientDeserializationError(
+          jsonResponse,
+          error,
+          bodyText,
+        );
+      }
+
+      data = problem;
     }
 
     const jsonResponse = response as FetchClientResponse<T>;

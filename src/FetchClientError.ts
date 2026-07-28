@@ -2,7 +2,7 @@ import type { FetchClientResponse } from "./FetchClientResponse.ts";
 import { getStatusText } from "./HttpStatusText.ts";
 
 /**
- * Error wrapper for non-2xx responses.
+ * Error wrapper for request failures with an HTTP response.
  * Exposes the underlying response for compatibility and debugging.
  */
 export class FetchClientError extends Error {
@@ -97,5 +97,26 @@ export class FetchClientError extends Error {
 
   clone(): Response {
     return this.response.clone();
+  }
+}
+
+/**
+ * Error thrown when the body of a successful response cannot be read or
+ * deserialized as JSON.
+ */
+export class FetchClientDeserializationError extends FetchClientError {
+  public override readonly cause: unknown;
+  public readonly responseText: string;
+
+  constructor(
+    response: FetchClientResponse<unknown>,
+    cause: unknown,
+    responseText: string,
+  ) {
+    const detail = cause instanceof Error ? cause.message : String(cause);
+    super(response, `Unable to deserialize response data: ${detail}`);
+    this.name = "FetchClientDeserializationError";
+    this.cause = cause;
+    this.responseText = responseText;
   }
 }

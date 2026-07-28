@@ -3,10 +3,12 @@ import {
   assertEquals,
   assertFalse,
   assertRejects,
+  assertStrictEquals,
   assertStringIncludes,
 } from "@std/assert";
 import {
   FetchClient,
+  FetchClientDeserializationError,
   FetchClientError,
   type FetchClientResponse,
   ProblemDetails,
@@ -259,4 +261,93 @@ Deno.test("problem details are populated on error responses", async () => {
   assertEquals(res.problem.status, 500);
   assert(res.problem.errors.server);
   assertEquals(res.problem.errors.server[0], "Database connection failed");
+});
+
+Deno.test("malformed JSON in a successful response throws a deserialization error", async () => {
+  const provider = new FetchClientProvider();
+  provider.fetch = () =>
+    Promise.resolve(
+      new Response('{"value":', {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+
+  const client = provider.getFetchClient();
+  let callbackResponse: FetchClientResponse<unknown> | undefined;
+
+  const error = await assertRejects(
+    () =>
+      client.getJSON("https://example.com/malformed", {
+        errorCallback: (response) => {
+          callbackResponse = response;
+          return false;
+        },
+      }),
+    FetchClientDeserializationError,
+  );
+
+  assert(error instanceof FetchClientDeserializationError);
+  assert(error.cause instanceof SyntaxError);
+  assertEquals(error.responseText, '{"value":');
+  assertEquals(error.response.status, 200);
+  assert(error.response.ok);
+  assertEquals(error.response.data, null);
+  assertStringIncludes(
+    error.response.problem.title ?? "",
+    "Unable to deserialize response data",
+  );
+  assertStrictEquals(callbackResponse, error.response);
+  assertEquals(client.requestCount, 0);
+  assertEquals(provider.requestCount, 0);
+});
+
+Deno.test("aborting a successful response body read preserves the abort reason", async () => {
+  const provider = new FetchClientProvider();
+  provider.fetch = (request) => {
+    const signal = request instanceof Request
+      ? request.signal
+      : new Request(request).signal;
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"value":'));
+        signal.addEventListener(
+          "abort",
+          () => controller.error(signal.reason),
+          { once: true },
+        );
+      },
+    });
+
+    return Promise.resolve(
+      new Response(body, {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+  };
+
+  const client = provider.getFetchClient();
+  const abortController = new AbortController();
+  const abortReason = new DOMException("Query cancelled", "AbortError");
+  let middlewareSawAbort = false;
+  client.use(async (_context, next) => {
+    try {
+      await next();
+    } catch (error) {
+      middlewareSawAbort = error === abortReason;
+      throw error;
+    }
+  });
+
+  const request = client.getJSON("https://example.com/stream", {
+    signal: abortController.signal,
+  });
+  setTimeout(() => abortController.abort(abortReason), 10);
+
+  const error = await assertRejects(() => request);
+  assertStrictEquals(error, abortReason);
+  assert(middlewareSawAbort);
+  assertEquals(client.requestCount, 0);
+  assertEquals(provider.requestCount, 0);
 });
