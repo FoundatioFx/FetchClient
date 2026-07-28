@@ -35,18 +35,48 @@ if (response.status === 404) {
 
 ## Prevent All Throwing
 
-Disable throwing entirely:
+Disable throwing for unexpected HTTP status codes:
 
 ```ts
 const response = await client.getJSON("/api/resource", {
   shouldThrowOnUnexpectedStatusCodes: false,
 });
 
-// Always returns response, never throws
+// Returns responses for unexpected HTTP status codes
 if (!response.ok) {
   console.log("Request failed:", response.status);
 }
 ```
+
+Response body consumption, cancellation, and deserialization errors are not HTTP
+status errors and can still reject the request.
+
+## Response Deserialization Errors
+
+JSON helpers throw `FetchClientDeserializationError` when a successful response
+body cannot be read or parsed. The error retains the response, the underlying
+cause, and any response text that was read. Invalid JSON is never returned in
+`response.data`.
+
+```ts
+import { FetchClientDeserializationError } from "@foundatiofx/fetchclient";
+
+try {
+  await client.getJSON("/api/resource");
+} catch (error) {
+  if (error instanceof FetchClientDeserializationError) {
+    console.log(error.response.status);
+    console.log(error.responseText);
+    console.log(error.cause);
+  }
+}
+```
+
+If an `AbortSignal` cancels response body consumption, FetchClient rejects with
+the signal's original abort reason instead of wrapping it as a deserialization
+error. Middleware observes both cancellation and deserialization failures.
+`errorCallback` is invoked for deserialization errors and can explicitly
+suppress them by returning `true`; cancellation bypasses `errorCallback`.
 
 ## Custom Error Callback
 
