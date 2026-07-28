@@ -110,6 +110,12 @@ jobs:
 
       - name: Push GitHub CI Packages
         if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
-        run: npm publish fetchclient.tgz --tag ${{ startsWith(github.ref, 'refs/tags/v') && 'latest' || 'next' }} --access public
+        run: |
+          package="@foundatiofx/fetchclient@${{ needs.lint.outputs.version }}"
+          if npm view "$package" version --registry https://npm.pkg.github.com > /dev/null 2>&1; then
+            echo "$package already exists in GitHub Packages; skipping publish."
+          else
+            npm publish fetchclient.tgz --tag ${{ startsWith(github.ref, 'refs/tags/v') && 'latest' || 'next' }} --access public
+          fi
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
