@@ -19,23 +19,17 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 22
-
-      - name: Clean npm cache and dependencies
-        run: |
-          rm -rf node_modules package-lock.json
-          npm cache clean --force
-        working-directory: docs
+          node-version: 24
 
       - name: Install dependencies
-        run: npm install --force
+        run: npm ci --force
         working-directory: docs
 
       - name: Build documentation
@@ -45,13 +39,13 @@ jobs:
           NODE_ENV: production
 
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v6
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v5
         with:
           path: docs/.vitepress/dist
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
