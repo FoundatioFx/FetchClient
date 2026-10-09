@@ -2,8 +2,7 @@
 ![Foundatio](https://raw.githubusercontent.com/foundatiofx/foundatio/master/media/foundatio.svg#gh-light-mode-only "Foundatio")
 
 [![NPM](https://img.shields.io/npm/v/%40foundatiofx%2Ffetchclient)](https://www.npmjs.com/package/@foundatiofx/fetchclient)
-[![JSR](https://jsr.io/badges/@foundatiofx/fetchclient)](https://jsr.io/@foundatiofx/fetchclient)
-[![Build status](https://github.com/foundatiofx/foundatio/workflows/Build/badge.svg)](https://github.com/foundatiofx/foundatio/actions)
+[![Build status](https://github.com/FoundatioFx/FetchClient/actions/workflows/ci.yml/badge.svg)](https://github.com/FoundatioFx/FetchClient/actions/workflows/ci.yml)
 [![Discord](https://img.shields.io/discord/715744504891703319)](https://discord.gg/6HxgFCx)
 
 FetchClient is a tiny, typed wrapper around `fetch` with JSON helpers, caching,
@@ -144,7 +143,6 @@ const { data } = await client.getJSON("/api/users");
   - [Circuit Breaker](https://fetchclient.foundatio.dev/guide/circuit-breaker)
   - [Error Handling](https://fetchclient.foundatio.dev/guide/error-handling)
   - [Testing](https://fetchclient.foundatio.dev/guide/testing)
-- API Reference: <https://jsr.io/@foundatiofx/fetchclient/doc>
 
 ---
 

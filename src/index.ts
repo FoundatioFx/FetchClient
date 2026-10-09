@@ -1,70 +1,60 @@
-export { FetchClient } from "./src/FetchClient.ts";
-export type { FetchClientOptions } from "./src/FetchClientOptions.ts";
-export type { FetchClientResponse } from "./src/FetchClientResponse.ts";
-export {
-  FetchClientDeserializationError,
-  FetchClientError,
-} from "./src/FetchClientError.ts";
-export { getStatusText } from "./src/HttpStatusText.ts";
-export { ResponsePromise } from "./src/ResponsePromise.ts";
-export { ProblemDetails } from "./src/ProblemDetails.ts";
-export {
-  type CacheKey,
-  type CacheTag,
-  FetchClientCache,
-} from "./src/FetchClientCache.ts";
-export type {
-  QueryRequestOptions,
-  RequestOptions,
-} from "./src/RequestOptions.ts";
-export type { FetchClientMiddleware } from "./src/FetchClientMiddleware.ts";
-export type { FetchClientContext } from "./src/FetchClientContext.ts";
+export { FetchClient } from "./FetchClient.ts";
+export type { FetchClientOptions } from "./FetchClientOptions.ts";
+export type { FetchClientResponse } from "./FetchClientResponse.ts";
+export { FetchClientDeserializationError, FetchClientError } from "./FetchClientError.ts";
+export { getStatusText } from "./HttpStatusText.ts";
+export { ResponsePromise } from "./ResponsePromise.ts";
+export { ProblemDetails } from "./ProblemDetails.ts";
+export { type CacheKey, type CacheTag, FetchClientCache } from "./FetchClientCache.ts";
+export type { QueryRequestOptions, RequestOptions } from "./RequestOptions.ts";
+export type { FetchClientMiddleware } from "./FetchClientMiddleware.ts";
+export type { FetchClientContext } from "./FetchClientContext.ts";
 export {
   defaultInstance as defaultProviderInstance,
   FetchClientProvider,
-} from "./src/FetchClientProvider.ts";
-export * from "./src/DefaultHelpers.ts";
+} from "./FetchClientProvider.ts";
+export * from "./DefaultHelpers.ts";
 export {
   CircuitBreaker,
   type CircuitBreakerOptions,
   type CircuitState,
   groupByDomain as circuitBreakerGroupByDomain,
   type GroupCircuitBreakerOptions,
-} from "./src/CircuitBreaker.ts";
+} from "./CircuitBreaker.ts";
 export {
   CircuitBreakerMiddleware,
   type CircuitBreakerMiddlewareOptions,
   CircuitOpenError,
   createCircuitBreakerMiddleware,
   createPerDomainCircuitBreakerMiddleware,
-} from "./src/CircuitBreakerMiddleware.ts";
+} from "./CircuitBreakerMiddleware.ts";
 export {
   createRetryMiddleware,
   RetryMiddleware,
   type RetryMiddlewareOptions,
-} from "./src/RetryMiddleware.ts";
+} from "./RetryMiddleware.ts";
 export {
   createPerDomainRateLimitMiddleware,
   createRateLimitMiddleware,
   RateLimitError,
   RateLimitMiddleware,
   type RateLimitMiddlewareOptions,
-} from "./src/RateLimitMiddleware.ts";
+} from "./RateLimitMiddleware.ts";
 export {
   groupByDomain as rateLimiterGroupByDomain,
   RateLimiter,
   type RateLimiterOptions,
-} from "./src/RateLimiter.ts";
+} from "./RateLimiter.ts";
 
-import { createRetryMiddleware } from "./src/RetryMiddleware.ts";
+import { createRetryMiddleware } from "./RetryMiddleware.ts";
 import {
   createPerDomainRateLimitMiddleware,
   createRateLimitMiddleware,
-} from "./src/RateLimitMiddleware.ts";
+} from "./RateLimitMiddleware.ts";
 import {
   createCircuitBreakerMiddleware,
   createPerDomainCircuitBreakerMiddleware,
-} from "./src/CircuitBreakerMiddleware.ts";
+} from "./CircuitBreakerMiddleware.ts";
 import {
   deleteJSON,
   getJSON,
@@ -74,13 +64,9 @@ import {
   queryJSON,
   useFetchClient,
   useMiddleware,
-} from "./src/DefaultHelpers.ts";
-import type {
-  GetRequestOptions,
-  QueryRequestOptions,
-  RequestOptions,
-} from "./src/RequestOptions.ts";
-import type { ResponsePromise } from "./src/ResponsePromise.ts";
+} from "./DefaultHelpers.ts";
+import type { GetRequestOptions, QueryRequestOptions, RequestOptions } from "./RequestOptions.ts";
+import type { ResponsePromise } from "./ResponsePromise.ts";
 
 /**
  * Convenience middleware factory functions for use with FetchClient.use()

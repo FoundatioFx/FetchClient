@@ -185,10 +185,7 @@ export class MockRegistry {
     return this.#addMock(null, url);
   }
 
-  #addMock(
-    method: string | null,
-    url: string | RegExp,
-  ): MockResponseBuilder<MockRegistry> {
+  #addMock(method: string | null, url: string | RegExp): MockResponseBuilder<MockRegistry> {
     const mock: MockDefinition = {
       method,
       url,
@@ -210,25 +207,20 @@ export class MockRegistry {
    */
   install(target: FetchClientProvider | FetchClient): void {
     if (this.#target) {
-      throw new Error(
-        "MockRegistry is already installed. Call restore() first.",
-      );
+      throw new Error("MockRegistry is already installed. Call restore() first.");
     }
 
     // If target is FetchClient, use its provider
     const provider =
       "provider" in target && typeof target.provider !== "undefined"
         ? (target as FetchClient).provider
-        : target as FetchClientProvider;
+        : (target as FetchClientProvider);
 
     this.#target = provider;
     this.#originalFetch = provider.fetch;
 
     // Replace fetch with our mock handler
-    provider.fetch = ((
-      input: RequestInfo | URL,
-      init?: RequestInit,
-    ): Promise<Response> => {
+    provider.fetch = ((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       return this.#handleRequest(input, init);
     }) as typeof provider.fetch;
   }
@@ -244,10 +236,7 @@ export class MockRegistry {
     this.#originalFetch = undefined;
   }
 
-  async #handleRequest(
-    input: RequestInfo | URL,
-    init?: RequestInit,
-  ): Promise<Response> {
+  async #handleRequest(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
     const signal = init?.signal;
 
     // Check if already aborted
@@ -297,10 +286,10 @@ export class MockRegistry {
       headers.set("Content-Type", "application/json");
     }
 
-    return new Response(
-      mock.data !== undefined ? JSON.stringify(mock.data) : null,
-      { status: mock.status, headers },
-    );
+    return new Response(mock.data !== undefined ? JSON.stringify(mock.data) : null, {
+      status: mock.status,
+      headers,
+    });
   }
 
   /**
@@ -390,10 +379,7 @@ export class MockRegistry {
    * ```
    */
   get fetch(): Fetch {
-    return ((
-      input: RequestInfo | URL,
-      init?: RequestInit,
-    ): Promise<Response> => {
+    return ((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       return this.#handleRequest(input, init);
     }) as Fetch;
   }

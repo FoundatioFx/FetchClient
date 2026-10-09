@@ -11,7 +11,7 @@ on:
         type: string
 
 jobs:
-  lint:
+  build:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -38,88 +38,55 @@ jobs:
             dotnet tool install --global minver-cli --version 7.0.0
             version=$(minver --tag-prefix v)
           fi
-          echo "version=$version" >> $GITHUB_OUTPUT
-          echo "### Version: $version" >> $GITHUB_STEP_SUMMARY
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "### Version: $version" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1.21.1
         with:
-          deno-version: v2.x
+          node-version-file: .node-version
+          cache: true
 
-      - name: Code Style
-        run: deno fmt --check
+      - name: Check
+        run: vp check
 
-      - name: Linting
-        run: deno lint
+      - name: Test
+        run: vp test --coverage
 
-      - name: Type Check
-        run: deno task check
+      - name: Set Package Version
+        run: vp pm version "${{ steps.version.outputs.version }}" -- --no-git-tag-version --no-git-checks
 
-  deno:
-    runs-on: ubuntu-24.04
-    needs: lint
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Tests
+      - name: Pack
         run: |
-          deno test --allow-net --coverage=cov/ src/tests
-          deno coverage cov/
+          vp pack
+          vp pm pack --out "$RUNNER_TEMP/fetchclient.tgz"
 
-      - name: Publish Release Package
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: deno publish --set-version ${{ needs.lint.outputs.version }}
+      - name: Show Package
+        run: tar -xOzf "$RUNNER_TEMP/fetchclient.tgz" package/package.json
 
-  npm:
+      - name: Upload Package
+        uses: actions/upload-artifact@v7
+        with:
+          name: npm-package
+          path: ${{ runner.temp }}/fetchclient.tgz
+          if-no-files-found: error
+
+  publish:
     runs-on: ubuntu-24.04
-    needs: lint
+    needs: build
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/npm/') || github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
       packages: write
       id-token: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      # No checkout here: npm refuses to run inside the repo because devEngines pins pnpm.
+      - name: Download Package
+        uses: actions/download-artifact@v8
         with:
-          fetch-depth: 0
+          name: npm-package
 
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Build NPM Package
-        run: deno task build --set-version ${{ needs.lint.outputs.version }}
-
-      - name: Add NPM Package Metadata
-        env:
-          REPOSITORY_URL: https://github.com/${{ github.repository }}
-        run: |
-          package_dir=$(mktemp -d)
-          tar -xzf fetchclient.tgz -C "$package_dir"
-          PACKAGE_JSON="$package_dir/package/package.json" deno eval '
-            const path = Deno.env.get("PACKAGE_JSON");
-            const repositoryUrl = Deno.env.get("REPOSITORY_URL");
-            const packageJson = JSON.parse(await Deno.readTextFile(path));
-            packageJson.repository = { type: "git", url: repositoryUrl };
-            await Deno.writeTextFile(path, `${JSON.stringify(packageJson, null, 2)}\n`);
-          '
-          tar -czf fetchclient.tgz -C "$package_dir" package
-
-      - name: Show NPM Package
-        run: tar -xOf fetchclient.tgz package/package.json
-
-      - name: Setup Node.js environment
+      - name: Setup npm Registry
         uses: actions/setup-node@v7
         with:
           node-version: "24.x"
@@ -130,8 +97,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/npm/') || github.event_name == 'workflow_dispatch'
         run: npm publish fetchclient.tgz --provenance --access public
 
-      - name: Setup GitHub CI Node.js environment
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/npm/') || github.event_name == 'workflow_dispatch'
+      - name: Setup GitHub Packages Registry
         uses: actions/setup-node@v7
         with:
           node-version: "24.x"
@@ -139,9 +105,8 @@ jobs:
           scope: "@foundatiofx"
 
       - name: Push GitHub CI Packages
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/npm/') || github.event_name == 'workflow_dispatch'
         run: |
-          package="@foundatiofx/fetchclient@${{ needs.lint.outputs.version }}"
+          package="@foundatiofx/fetchclient@${{ needs.build.outputs.version }}"
           if npm view "$package" version --registry https://npm.pkg.github.com > /dev/null 2>&1; then
             echo "$package already exists in GitHub Packages; skipping publish."
           else

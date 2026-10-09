@@ -1,9 +1,9 @@
 {
   "name": "@foundatiofx/fetchclient-docs",
-  "private": true,
   "version": "1.0.0",
-  "type": "module",
+  "private": true,
   "description": "FetchClient Documentation",
+  "type": "module",
   "scripts": {
     "dev": "vitepress dev",
     "build": "vitepress build",

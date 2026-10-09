@@ -10,11 +10,7 @@ import type { FetchClientResponse } from "./FetchClientResponse.ts";
 import type { ProblemDetails } from "./ProblemDetails.ts";
 import type { RateLimitMiddlewareOptions } from "./RateLimitMiddleware.ts";
 import type { CircuitBreakerMiddlewareOptions } from "./CircuitBreakerMiddleware.ts";
-import type {
-  GetRequestOptions,
-  QueryRequestOptions,
-  RequestOptions,
-} from "./RequestOptions.ts";
+import type { GetRequestOptions, QueryRequestOptions, RequestOptions } from "./RequestOptions.ts";
 
 let getCurrentProviderFunc: () => FetchClientProvider | null = () => null;
 
@@ -147,9 +143,7 @@ export function getCache(): FetchClientCache {
  * @param getProviderFunc - The function that retrieves the current FetchClientProvider.
  * @returns void
  */
-export function setCurrentProviderFunc(
-  getProviderFunc: () => FetchClientProvider | null,
-) {
+export function setCurrentProviderFunc(getProviderFunc: () => FetchClientProvider | null) {
   getCurrentProviderFunc = getProviderFunc;
 }
 
@@ -165,9 +159,7 @@ export function setBaseUrl(baseUrl: string) {
  * Sets the access token function for any FetchClient instances created by the current provider.
  * @param accessTokenFunc - The function that retrieves the access token.
  */
-export function setAccessTokenFunc(
-  accessTokenFunc: () => string | null,
-) {
+export function setAccessTokenFunc(accessTokenFunc: () => string | null) {
   getCurrentProvider().setAccessTokenFunc(accessTokenFunc);
 }
 
@@ -201,9 +193,7 @@ export function setRequestOptions(options: RequestOptions) {
  * Enables rate limiting for any FetchClient instances created by the current provider.
  * @param options - The rate limiting configuration options.
  */
-export function useRateLimit(
-  options: RateLimitMiddlewareOptions,
-) {
+export function useRateLimit(options: RateLimitMiddlewareOptions) {
   getCurrentProvider().useRateLimit(options);
 }
 
@@ -211,9 +201,7 @@ export function useRateLimit(
  * Enables per-domain rate limiting for any FetchClient instances created by the current provider.
  * @param options - The rate limiting configuration options.
  */
-export function usePerDomainRateLimit(
-  options: Omit<RateLimitMiddlewareOptions, "getGroupFunc">,
-) {
+export function usePerDomainRateLimit(options: Omit<RateLimitMiddlewareOptions, "getGroupFunc">) {
   getCurrentProvider().usePerDomainRateLimit(options);
 }
 

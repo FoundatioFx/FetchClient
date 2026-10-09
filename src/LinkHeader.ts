@@ -15,7 +15,6 @@ function intoRels(acc: Links, x: Link) {
   return acc;
 }
 
-// deno-lint-ignore no-explicit-any
 function createObjects(acc: any, p: string) {
   // rel="next" => 1: rel 2: next
   const m = p.match(/\s*(.+)\s*=\s*"?([^"]+)"?/);
@@ -49,23 +48,18 @@ function parseLink(link: string) {
   }
 }
 
-function checkHeader(
-  linkHeader: string | null | undefined,
-  options?: Options,
-): boolean {
+function checkHeader(linkHeader: string | null | undefined, options?: Options): boolean {
   if (!linkHeader) return false;
 
   options = options || {};
   const maxHeaderLength = options.maxHeaderLength || MAX_HEADER_LENGTH;
   const throwOnMaxHeaderLengthExceeded =
-    options.throwOnMaxHeaderLengthExceeded ||
-    THROW_ON_MAX_HEADER_LENGTH_EXCEEDED;
+    options.throwOnMaxHeaderLengthExceeded || THROW_ON_MAX_HEADER_LENGTH_EXCEEDED;
 
   if (linkHeader.length > maxHeaderLength) {
     if (throwOnMaxHeaderLengthExceeded) {
       throw new Error(
-        "Input string too long, it should be under " + maxHeaderLength +
-          " characters.",
+        "Input string too long, it should be under " + maxHeaderLength + " characters.",
       );
     } else {
       return false;
@@ -74,16 +68,10 @@ function checkHeader(
   return true;
 }
 
-function parseLinkHeader(
-  linkHeader: string | null | undefined,
-  options?: Options,
-): Links | null {
+function parseLinkHeader(linkHeader: string | null | undefined, options?: Options): Links | null {
   if (!checkHeader(linkHeader, options)) return null;
 
-  return linkHeader!.split(/,\s*</)
-    .map(parseLink)
-    .filter(hasRel)
-    .reduce(intoRels, {});
+  return linkHeader!.split(/,\s*</).map(parseLink).filter(hasRel).reduce(intoRels, {});
 }
 
 export interface Link {

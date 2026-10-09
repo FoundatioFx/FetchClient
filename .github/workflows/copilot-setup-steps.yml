@@ -20,7 +20,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1.21.1
         with:
-          deno-version: v2.x
+          node-version-file: .node-version
+          cache: true

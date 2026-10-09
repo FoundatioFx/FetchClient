@@ -88,9 +88,7 @@ mocks.onGet("/api/data").reply(200, { key: "value" });
 ### Custom Headers
 
 ```ts
-mocks.onGet("/api/data")
-  .reply(200, { data: "value" })
-  .withHeaders({ "X-Custom": "header" });
+mocks.onGet("/api/data").reply(200, { data: "value" }).withHeaders({ "X-Custom": "header" });
 ```
 
 ### Empty Response
@@ -130,9 +128,7 @@ mocks.onGet("/api/slow").timeout();
 ### Delayed Responses
 
 ```ts
-mocks.onGet("/api/data")
-  .reply(200, { data: "value" })
-  .withDelay(1000); // 1 second delay
+mocks.onGet("/api/data").reply(200, { data: "value" }).withDelay(1000); // 1 second delay
 ```
 
 ## Conditional Matching
@@ -315,9 +311,7 @@ it("should handle 404", async () => {
 it("should handle network errors", async () => {
   mocks.onGet("/api/data").networkError("Connection refused");
 
-  await expect(client.getJSON("/api/data")).rejects.toThrow(
-    "Connection refused",
-  );
+  await expect(client.getJSON("/api/data")).rejects.toThrow("Connection refused");
 });
 
 it("should handle timeouts", async () => {

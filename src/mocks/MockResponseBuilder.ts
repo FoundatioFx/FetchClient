@@ -20,11 +20,7 @@ export class MockResponseBuilder<T> {
    * @param headers - Optional response headers
    * @returns The registry for chaining
    */
-  reply(
-    status: number,
-    data?: unknown,
-    headers?: Record<string, string>,
-  ): T {
+  reply(status: number, data?: unknown, headers?: Record<string, string>): T {
     this.#mock.status = status;
     this.#mock.data = data;
     this.#mock.headers = headers;
@@ -38,11 +34,7 @@ export class MockResponseBuilder<T> {
    * @param headers - Optional response headers
    * @returns The registry for chaining
    */
-  replyOnce(
-    status: number,
-    data?: unknown,
-    headers?: Record<string, string>,
-  ): T {
+  replyOnce(status: number, data?: unknown, headers?: Record<string, string>): T {
     this.#mock.once = true;
     return this.reply(status, data, headers);
   }
@@ -90,7 +82,7 @@ export class MockResponseBuilder<T> {
    * @param body - Exact body to match, or a predicate function
    * @returns This builder for further configuration
    */
-  withBody(body: unknown | ((body: unknown) => boolean)): this {
+  withBody(body: unknown): this {
     this.#mock.bodyMatcher = body;
     return this;
   }

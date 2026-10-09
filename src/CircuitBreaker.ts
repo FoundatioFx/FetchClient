@@ -48,16 +48,11 @@ interface CircuitBreakerBucket {
   halfOpenAttempts: number; // Current concurrent requests in HALF_OPEN
 }
 
-type RequiredOptions =
-  & Required<
-    Omit<
-      CircuitBreakerOptions,
-      "groups" | "onOpen" | "onClose" | "onHalfOpen" | "onStateChange"
-    >
-  >
-  & {
-    onStateChange?: (from: CircuitState, to: CircuitState) => void;
-  };
+type RequiredOptions = Required<
+  Omit<CircuitBreakerOptions, "groups" | "onOpen" | "onClose" | "onHalfOpen" | "onStateChange">
+> & {
+  onStateChange?: (from: CircuitState, to: CircuitState) => void;
+};
 
 /**
  * Circuit breaker for preventing cascading failures.
@@ -122,22 +117,16 @@ export class CircuitBreaker {
   /**
    * Gets the effective options for a group.
    */
-  #getOptions(
-    group: string,
-  ): Required<Omit<GroupCircuitBreakerOptions, "onStateChange">> & {
+  #getOptions(group: string): Required<Omit<GroupCircuitBreakerOptions, "onStateChange">> & {
     onStateChange?: (from: CircuitState, to: CircuitState) => void;
   } {
     const groupOpts = this.#groupOptions.get(group);
     return {
-      failureThreshold: groupOpts?.failureThreshold ??
-        this.#options.failureThreshold,
-      failureWindowMs: groupOpts?.failureWindowMs ??
-        this.#options.failureWindowMs,
+      failureThreshold: groupOpts?.failureThreshold ?? this.#options.failureThreshold,
+      failureWindowMs: groupOpts?.failureWindowMs ?? this.#options.failureWindowMs,
       openDurationMs: groupOpts?.openDurationMs ?? this.#options.openDurationMs,
-      successThreshold: groupOpts?.successThreshold ??
-        this.#options.successThreshold,
-      halfOpenMaxAttempts: groupOpts?.halfOpenMaxAttempts ??
-        this.#options.halfOpenMaxAttempts,
+      successThreshold: groupOpts?.successThreshold ?? this.#options.successThreshold,
+      halfOpenMaxAttempts: groupOpts?.halfOpenMaxAttempts ?? this.#options.halfOpenMaxAttempts,
       onStateChange: groupOpts?.onStateChange ?? this.#options.onStateChange,
     };
   }
@@ -163,11 +152,7 @@ export class CircuitBreaker {
   /**
    * Transitions the circuit to a new state.
    */
-  #transitionTo(
-    group: string,
-    bucket: CircuitBreakerBucket,
-    newState: CircuitState,
-  ): void {
+  #transitionTo(group: string, bucket: CircuitBreakerBucket, newState: CircuitState): void {
     const oldState = bucket.state;
     if (oldState === newState) return;
 

@@ -1,9 +1,5 @@
 import { Counter } from "./Counter.ts";
-import type {
-  GetRequestOptions,
-  QueryRequestOptions,
-  RequestOptions,
-} from "./RequestOptions.ts";
+import type { GetRequestOptions, QueryRequestOptions, RequestOptions } from "./RequestOptions.ts";
 import { ProblemDetails } from "./ProblemDetails.ts";
 import type { FetchClientResponse } from "./FetchClientResponse.ts";
 import type { FetchClientMiddleware } from "./FetchClientMiddleware.ts";
@@ -15,10 +11,7 @@ import { getCurrentProvider } from "./DefaultHelpers.ts";
 import type { FetchClientOptions } from "./FetchClientOptions.ts";
 import { type IObjectEvent, ObjectEvent } from "./ObjectEvent.ts";
 import { ResponsePromise } from "./ResponsePromise.ts";
-import {
-  FetchClientDeserializationError,
-  FetchClientError,
-} from "./FetchClientError.ts";
+import { FetchClientDeserializationError, FetchClientError } from "./FetchClientError.ts";
 import { getStatusText } from "./HttpStatusText.ts";
 
 type Fetch = typeof globalThis.fetch;
@@ -139,10 +132,7 @@ export class FetchClient {
    * @param options - The optional request options.
    * @returns A ResponsePromise that resolves to the response. Can use `.json<T>()` for typed JSON.
    */
-  get(
-    url: string,
-    options?: GetRequestOptions,
-  ): ResponsePromise<unknown> {
+  get(url: string, options?: GetRequestOptions): ResponsePromise<unknown> {
     const mergedOptions = this.mergeWithDefaultRequestOptions(options);
 
     const responsePromise = this.fetchInternal(
@@ -162,12 +152,9 @@ export class FetchClient {
    * @param options - Optional request options.
    * @returns A promise that resolves to the response with parsed JSON in `data`.
    */
-  async getJSON<T>(
-    url: string,
-    options?: GetRequestOptions,
-  ): Promise<FetchClientResponse<T>> {
+  async getJSON<T>(url: string, options?: GetRequestOptions): Promise<FetchClientResponse<T>> {
     const mergedOptions = this.buildJsonRequestOptions(options);
-    return await this.get(url, mergedOptions) as FetchClientResponse<T>;
+    return (await this.get(url, mergedOptions)) as FetchClientResponse<T>;
   }
 
   /**
@@ -209,11 +196,11 @@ export class FetchClient {
     body?: object | string | FormData,
     options?: QueryRequestOptions,
   ): Promise<FetchClientResponse<T>> {
-    return await this.query(
+    return (await this.query(
       url,
       body,
       this.buildJsonRequestOptions(options),
-    ) as FetchClientResponse<T>;
+    )) as FetchClientResponse<T>;
   }
 
   /**
@@ -255,11 +242,11 @@ export class FetchClient {
     body?: object | string | FormData,
     options?: RequestOptions,
   ): Promise<FetchClientResponse<T>> {
-    return await this.post(
+    return (await this.post(
       url,
       body,
       this.buildJsonRequestOptions(options),
-    ) as FetchClientResponse<T>;
+    )) as FetchClientResponse<T>;
   }
 
   /**
@@ -300,11 +287,11 @@ export class FetchClient {
     body?: object | string,
     options?: RequestOptions,
   ): Promise<FetchClientResponse<T>> {
-    return await this.put(
+    return (await this.put(
       url,
       body,
       this.buildJsonRequestOptions(options),
-    ) as FetchClientResponse<T>;
+    )) as FetchClientResponse<T>;
   }
 
   /**
@@ -345,11 +332,11 @@ export class FetchClient {
     body?: object | string,
     options?: RequestOptions,
   ): Promise<FetchClientResponse<T>> {
-    return await this.patch(
+    return (await this.patch(
       url,
       body,
       this.buildJsonRequestOptions(options),
-    ) as FetchClientResponse<T>;
+    )) as FetchClientResponse<T>;
   }
 
   /**
@@ -359,10 +346,7 @@ export class FetchClient {
    * @param options - The options for the request.
    * @returns A ResponsePromise that resolves to the response. Can use `.json<T>()` for typed JSON.
    */
-  delete(
-    url: string,
-    options?: RequestOptions,
-  ): ResponsePromise<unknown> {
+  delete(url: string, options?: RequestOptions): ResponsePromise<unknown> {
     const mergedOptions = this.mergeWithDefaultRequestOptions(options);
 
     const responsePromise = this.fetchInternal(
@@ -383,14 +367,11 @@ export class FetchClient {
    * @param {RequestOptions} [options] - Additional options for the request.
    * @returns A promise that resolves to the response with parsed JSON in `data`.
    */
-  async deleteJSON<T>(
-    url: string,
-    options?: RequestOptions,
-  ): Promise<FetchClientResponse<T>> {
-    return await this.delete(
+  async deleteJSON<T>(url: string, options?: RequestOptions): Promise<FetchClientResponse<T>> {
+    return (await this.delete(
       url,
       this.buildJsonRequestOptions(options),
-    ) as FetchClientResponse<T>;
+    )) as FetchClientResponse<T>;
   }
 
   /**
@@ -401,10 +382,7 @@ export class FetchClient {
    * @param options - The optional request options.
    * @returns A ResponsePromise that resolves to the response.
    */
-  head(
-    url: string,
-    options?: GetRequestOptions,
-  ): ResponsePromise<void> {
+  head(url: string, options?: GetRequestOptions): ResponsePromise<void> {
     const mergedOptions = this.mergeWithDefaultRequestOptions(options);
 
     const responsePromise = this.fetchInternal<void>(
@@ -416,14 +394,8 @@ export class FetchClient {
     return new ResponsePromise(responsePromise, mergedOptions);
   }
 
-  private async validate(
-    data: unknown,
-    options?: RequestOptions,
-  ): Promise<ProblemDetails | null> {
-    if (
-      typeof data !== "object" ||
-      (options && options.shouldValidateModel === false)
-    ) return null;
+  private async validate(data: unknown, options?: RequestOptions): Promise<ProblemDetails | null> {
+    if (typeof data !== "object" || (options && options.shouldValidateModel === false)) return null;
 
     if (this.options?.modelValidator === undefined) {
       return null;
@@ -457,9 +429,9 @@ export class FetchClient {
     if (accessToken !== null) {
       init = {
         ...init,
-        ...{
-          headers: { ...init?.headers, Authorization: `Bearer ${accessToken}` },
-        },
+        // buildRequestInit always produces a plain headers object.
+        // oxlint-disable-next-line typescript/no-misused-spread
+        headers: { ...init?.headers, Authorization: `Bearer ${accessToken}` },
       };
     }
 
@@ -477,10 +449,7 @@ export class FetchClient {
       init = { ...init, signal: signal };
     }
 
-    const fetchMiddleware = async (
-      ctx: FetchClientContext,
-      next: () => Promise<void>,
-    ) => {
+    const fetchMiddleware = async (ctx: FetchClientContext, next: () => Promise<void>) => {
       const getOptions = ctx.options as GetRequestOptions;
       if (getOptions?.cacheKey) {
         const cachedResponse = this.cache.get(getOptions.cacheKey);
@@ -491,20 +460,13 @@ export class FetchClient {
       }
 
       try {
-        const response =
-          await (this.fetch ? this.fetch(ctx.request) : fetch(ctx.request));
+        const response = await (this.fetch ? this.fetch(ctx.request) : fetch(ctx.request));
 
         if (
           ctx.request.headers.get("Accept")?.startsWith("application/json") ||
-          response?.headers.get("Content-Type")?.startsWith(
-            "application/problem+json",
-          )
+          response?.headers.get("Content-Type")?.startsWith("application/problem+json")
         ) {
-          ctx.response = await this.getJSONResponse<T>(
-            response,
-            ctx.options,
-            ctx.request.signal,
-          );
+          ctx.response = await this.getJSONResponse<T>(response, ctx.options, ctx.request.signal);
         } else {
           ctx.response = response as FetchClientResponse<T>;
           ctx.response.data = null;
@@ -540,11 +502,7 @@ export class FetchClient {
       await next();
     };
 
-    const middleware = [
-      ...this.options.middleware ?? [],
-      ...this.#middleware,
-      fetchMiddleware,
-    ];
+    const middleware = [...(this.options.middleware ?? []), ...this.#middleware, fetchMiddleware];
 
     this.#counter.increment();
     this.#provider.counter.increment();
@@ -662,11 +620,7 @@ export class FetchClient {
           links: parseLinkHeader(response.headers.get("Link")) || {},
         };
 
-        throw new FetchClientDeserializationError(
-          jsonResponse,
-          error,
-          bodyText,
-        );
+        throw new FetchClientDeserializationError(jsonResponse, error, bodyText);
       }
 
       data = problem;
@@ -676,9 +630,7 @@ export class FetchClient {
 
     if (
       !response.ok ||
-      response.headers.get("Content-Type")?.startsWith(
-        "application/problem+json",
-      )
+      response.headers.get("Content-Type")?.startsWith("application/problem+json")
     ) {
       jsonResponse.problem = Object.assign(new ProblemDetails(), data);
       jsonResponse.data = null;
@@ -691,11 +643,7 @@ export class FetchClient {
     return jsonResponse;
   }
 
-  private reviveJsonValue(
-    options: RequestOptions,
-    key: string,
-    value: unknown,
-  ): unknown {
+  private reviveJsonValue(options: RequestOptions, key: string, value: unknown): unknown {
     let revivedValued = value;
 
     if (options.reviver) {
@@ -757,9 +705,7 @@ export class FetchClient {
       return false;
     }
 
-    if (
-      typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams
-    ) {
+    if (typeof URLSearchParams !== "undefined" && body instanceof URLSearchParams) {
       return false;
     }
 
@@ -770,40 +716,29 @@ export class FetchClient {
       return false;
     }
 
-    if (
-      typeof ReadableStream !== "undefined" && body instanceof ReadableStream
-    ) {
+    if (typeof ReadableStream !== "undefined" && body instanceof ReadableStream) {
       return false;
     }
 
     return true;
   }
 
-  private buildJsonRequestOptions(
-    options: RequestOptions | undefined,
-  ): RequestOptions {
+  private buildJsonRequestOptions(options: RequestOptions | undefined): RequestOptions {
     return {
       ...options,
       headers: {
-        "Accept": "application/json, application/problem+json",
+        Accept: "application/json, application/problem+json",
         ...options?.headers,
       },
     };
   }
 
-  private mergeWithDefaultRequestOptions(
-    options?: GetRequestOptions,
-  ): GetRequestOptions;
-  private mergeWithDefaultRequestOptions(
-    options?: RequestOptions,
-  ): RequestOptions;
+  private mergeWithDefaultRequestOptions(options?: GetRequestOptions): GetRequestOptions;
+  private mergeWithDefaultRequestOptions(options?: RequestOptions): RequestOptions;
   private mergeWithDefaultRequestOptions(
     options?: RequestOptions | GetRequestOptions,
   ): RequestOptions | GetRequestOptions {
-    return this.mergeRequestOptions(
-      this.options.defaultRequestOptions,
-      options,
-    );
+    return this.mergeRequestOptions(this.options.defaultRequestOptions, options);
   }
 
   private mergeRequestOptions(
@@ -840,10 +775,7 @@ export class FetchClient {
     return mergedOptions;
   }
 
-  private problemToResponse<T>(
-    problem: ProblemDetails,
-    url: string,
-  ): FetchClientResponse<T> {
+  private problemToResponse<T>(problem: ProblemDetails, url: string): FetchClientResponse<T> {
     const headers = new Headers();
     headers.set("Content-Type", "application/problem+json");
 
@@ -863,7 +795,6 @@ export class FetchClient {
       json: () => new Promise((resolve) => resolve(problem)),
       text: () => new Promise((resolve) => resolve(JSON.stringify(problem))),
       arrayBuffer: () => new Promise((resolve) => resolve(new ArrayBuffer(0))),
-      // @ts-ignore: New in Deno 1.44
       bytes: () => new Promise((resolve) => resolve(new Uint8Array())),
       blob: () => new Promise((resolve) => resolve(new Blob())),
       formData: () => new Promise((resolve) => resolve(new FormData())),
@@ -892,10 +823,7 @@ export class FetchClient {
     let parsed: URL | undefined = undefined;
     if (isAbsoluteUrl) {
       parsed = new URL(builtUrl);
-    } else if (
-      globalThis.location?.origin &&
-      globalThis.location?.origin.startsWith("http")
-    ) {
+    } else if (globalThis.location?.origin && globalThis.location?.origin.startsWith("http")) {
       if (builtUrl.startsWith("/")) {
         parsed = new URL(builtUrl, globalThis.location.origin);
       } else {
@@ -911,9 +839,7 @@ export class FetchClient {
 
     if (options?.params) {
       for (const [key, value] of Object.entries(options?.params)) {
-        if (
-          value !== undefined && value !== null && !parsed.searchParams.has(key)
-        ) {
+        if (value !== undefined && value !== null && !parsed.searchParams.has(key)) {
           parsed.searchParams.set(key, value as string);
         }
       }
@@ -921,9 +847,7 @@ export class FetchClient {
 
     builtUrl = parsed.toString();
 
-    const result = isAbsoluteUrl
-      ? builtUrl
-      : `${parsed.pathname}${parsed.search}`;
+    const result = isAbsoluteUrl ? builtUrl : `${parsed.pathname}${parsed.search}`;
 
     return { builtUrl: result, absoluteUrl: builtUrl };
   }
@@ -940,10 +864,7 @@ export class FetchClient {
       return;
     }
 
-    if (
-      options?.expectedStatusCodes &&
-      options.expectedStatusCodes.includes(response.status)
-    ) {
+    if (options?.expectedStatusCodes && options.expectedStatusCodes.includes(response.status)) {
       return;
     }
 
