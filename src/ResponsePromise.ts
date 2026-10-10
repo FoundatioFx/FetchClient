@@ -16,15 +16,11 @@ import type { RequestOptions } from "./RequestOptions.ts";
  * const file = await client.get("/file").blob();
  * ```
  */
-export class ResponsePromise<T = unknown>
-  implements PromiseLike<FetchClientResponse<T>> {
+export class ResponsePromise<T = unknown> implements PromiseLike<FetchClientResponse<T>> {
   readonly #responsePromise: Promise<FetchClientResponse<T>>;
   readonly #options?: RequestOptions;
 
-  constructor(
-    responsePromise: Promise<FetchClientResponse<T>>,
-    options?: RequestOptions,
-  ) {
+  constructor(responsePromise: Promise<FetchClientResponse<T>>, options?: RequestOptions) {
     this.#responsePromise = responsePromise;
     this.#options = options;
   }
@@ -32,10 +28,9 @@ export class ResponsePromise<T = unknown>
   /**
    * Implements PromiseLike interface so the ResponsePromise can be awaited.
    */
+  // oxlint-disable-next-line unicorn/no-thenable
   then<TResult1 = FetchClientResponse<T>, TResult2 = never>(
-    onfulfilled?:
-      | ((value: FetchClientResponse<T>) => TResult1 | PromiseLike<TResult1>)
-      | null,
+    onfulfilled?: ((value: FetchClientResponse<T>) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
   ): Promise<TResult1 | TResult2> {
     return this.#responsePromise.then(onfulfilled, onrejected);

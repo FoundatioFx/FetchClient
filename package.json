@@ -1,0 +1,64 @@
+{
+  "name": "@foundatiofx/fetchclient",
+  "version": "0.0.0",
+  "description": "A typed JSON fetch client with middleware, caching, rate limiting, and provider-based configuration for Node, Deno, Bun, and browsers.",
+  "keywords": [
+    "cache",
+    "circuit-breaker",
+    "client",
+    "fetch",
+    "http",
+    "json",
+    "middleware",
+    "problem-details",
+    "rate-limit"
+  ],
+  "homepage": "https://fetchclient.foundatio.dev",
+  "bugs": {
+    "url": "https://github.com/FoundatioFx/FetchClient/issues"
+  },
+  "license": "MIT",
+  "author": "Foundatio",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FoundatioFx/FetchClient.git"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": "./dist/index.js",
+    "./mocks": "./dist/mocks.js",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "check": "vp check",
+    "docs:dev": "vp run @foundatiofx/fetchclient-docs#dev",
+    "docs:build": "vp run @foundatiofx/fetchclient-docs#build",
+    "prepublishOnly": "vp run build",
+    "prepare": "vp config"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/core": "^0.18.5",
+    "@vitest/coverage-v8": "5.0.3",
+    "publint": "^0.3.25",
+    "typescript": "^7.0.2",
+    "vite-plus": "catalog:",
+    "zod": "^4.6.5"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.10.1",
+      "onFail": "download"
+    }
+  }
+}

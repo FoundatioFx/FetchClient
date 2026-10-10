@@ -1,8 +1,8 @@
-import { assert, assertEquals, assertFalse } from "@std/assert";
-import { CircuitBreaker, groupByDomain } from "../CircuitBreaker.ts";
-import { CircuitOpenError } from "../CircuitBreakerMiddleware.ts";
-import { FetchClientProvider } from "../FetchClientProvider.ts";
-import { MockRegistry } from "../mocks/MockRegistry.ts";
+import { assert, expect, test } from "vite-plus/test";
+import { CircuitBreaker, groupByDomain } from "../src/CircuitBreaker.ts";
+import { CircuitOpenError } from "../src/CircuitBreakerMiddleware.ts";
+import { FetchClientProvider } from "../src/FetchClientProvider.ts";
+import { MockRegistry } from "../src/mocks/MockRegistry.ts";
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -12,19 +12,19 @@ function delay(ms: number): Promise<void> {
 // CircuitBreaker Core Tests
 // ============================================
 
-Deno.test("CircuitBreaker - starts in CLOSED state", () => {
+test("CircuitBreaker - starts in CLOSED state", () => {
   const breaker = new CircuitBreaker();
-  assertEquals(breaker.getState("http://example.com/api"), "CLOSED");
+  expect(breaker.getState("http://example.com/api")).toBe("CLOSED");
 });
 
-Deno.test("CircuitBreaker - allows requests in CLOSED state", () => {
+test("CircuitBreaker - allows requests in CLOSED state", () => {
   const breaker = new CircuitBreaker();
-  assert(breaker.isAllowed("http://example.com/api"));
-  assert(breaker.isAllowed("http://example.com/api"));
-  assert(breaker.isAllowed("http://example.com/api"));
+  expect(breaker.isAllowed("http://example.com/api")).toBe(true);
+  expect(breaker.isAllowed("http://example.com/api")).toBe(true);
+  expect(breaker.isAllowed("http://example.com/api")).toBe(true);
 });
 
-Deno.test("CircuitBreaker - opens after failure threshold", () => {
+test("CircuitBreaker - opens after failure threshold", () => {
   const breaker = new CircuitBreaker({
     failureThreshold: 3,
   });
@@ -33,19 +33,19 @@ Deno.test("CircuitBreaker - opens after failure threshold", () => {
 
   // Record 3 failures
   breaker.recordFailure(url);
-  assertEquals(breaker.getState(url), "CLOSED");
-  assertEquals(breaker.getFailureCount(url), 1);
+  expect(breaker.getState(url)).toBe("CLOSED");
+  expect(breaker.getFailureCount(url)).toBe(1);
 
   breaker.recordFailure(url);
-  assertEquals(breaker.getState(url), "CLOSED");
-  assertEquals(breaker.getFailureCount(url), 2);
+  expect(breaker.getState(url)).toBe("CLOSED");
+  expect(breaker.getFailureCount(url)).toBe(2);
 
   breaker.recordFailure(url);
-  assertEquals(breaker.getState(url), "OPEN");
-  assertEquals(breaker.getFailureCount(url), 3);
+  expect(breaker.getState(url)).toBe("OPEN");
+  expect(breaker.getFailureCount(url)).toBe(3);
 });
 
-Deno.test("CircuitBreaker - blocks requests in OPEN state", () => {
+test("CircuitBreaker - blocks requests in OPEN state", () => {
   const breaker = new CircuitBreaker({
     failureThreshold: 2,
     openDurationMs: 10000, // Long enough that it won't transition
@@ -57,12 +57,12 @@ Deno.test("CircuitBreaker - blocks requests in OPEN state", () => {
   breaker.recordFailure(url);
   breaker.recordFailure(url);
 
-  assertEquals(breaker.getState(url), "OPEN");
-  assertFalse(breaker.isAllowed(url));
-  assertFalse(breaker.isAllowed(url));
+  expect(breaker.getState(url)).toBe("OPEN");
+  expect(breaker.isAllowed(url)).toBe(false);
+  expect(breaker.isAllowed(url)).toBe(false);
 });
 
-Deno.test("CircuitBreaker - transitions to HALF_OPEN after openDuration", async () => {
+test("CircuitBreaker - transitions to HALF_OPEN after openDuration", async () => {
   const breaker = new CircuitBreaker({
     failureThreshold: 2,
     openDurationMs: 50,
@@ -73,19 +73,19 @@ Deno.test("CircuitBreaker - transitions to HALF_OPEN after openDuration", async 
   // Open the circuit
   breaker.recordFailure(url);
   breaker.recordFailure(url);
-  assertEquals(breaker.getState(url), "OPEN");
+  expect(breaker.getState(url)).toBe("OPEN");
 
   // Wait for openDuration
   await delay(60);
 
   // Should now be HALF_OPEN (checked via getState which checks elapsed time)
-  assertEquals(breaker.getState(url), "HALF_OPEN");
+  expect(breaker.getState(url)).toBe("HALF_OPEN");
 
   // Should allow limited requests
-  assert(breaker.isAllowed(url));
+  expect(breaker.isAllowed(url)).toBe(true);
 });
 
-Deno.test("CircuitBreaker - HALF_OPEN limits concurrent requests", async () => {
+test("CircuitBreaker - HALF_OPEN limits concurrent requests", async () => {
   const breaker = new CircuitBreaker({
     failureThreshold: 2,
     openDurationMs: 50,
@@ -102,13 +102,13 @@ Deno.test("CircuitBreaker - HALF_OPEN limits concurrent requests", async () => {
   await delay(60);
 
   // First request allowed
-  assert(breaker.isAllowed(url));
+  expect(breaker.isAllowed(url)).toBe(true);
 
   // Second request blocked (only 1 allowed in HALF_OPEN)
-  assertFalse(breaker.isAllowed(url));
+  expect(breaker.isAllowed(url)).toBe(false);
 });
 
-Deno.test("CircuitBreaker - closes after success threshold in HALF_OPEN", async () => {
+test("CircuitBreaker - closes after success threshold in HALF_OPEN", async () => {
   const breaker = new CircuitBreaker({
     failureThreshold: 2,
     openDurationMs: 50,
@@ -124,19 +124,19 @@ Deno.test("CircuitBreaker - closes after success threshold in HALF_OPEN", async 
 
   // Wait for HALF_OPEN
   await delay(60);
-  assertEquals(breaker.getState(url), "HALF_OPEN");
+  expect(breaker.getState(url)).toBe("HALF_OPEN");
 
   // Allow requests and record successes
-  assert(breaker.isAllowed(url));
+  expect(breaker.isAllowed(url)).toBe(true);
   breaker.recordSuccess(url);
-  assertEquals(breaker.getState(url), "HALF_OPEN"); // Still half-open
+  expect(breaker.getState(url)).toBe("HALF_OPEN"); // Still half-open
 
-  assert(breaker.isAllowed(url));
+  expect(breaker.isAllowed(url)).toBe(true);
   breaker.recordSuccess(url);
-  assertEquals(breaker.getState(url), "CLOSED"); // Now closed
+  expect(breaker.getState(url)).toBe("CLOSED"); // Now closed
 });
 
-Deno.test("CircuitBreaker - reopens on failure in HALF_OPEN", async () => {
+test("CircuitBreaker - reopens on failure in HALF_OPEN", async () => {
   const breaker = new CircuitBreaker({
     failureThreshold: 2,
     openDurationMs: 50,
@@ -151,17 +151,17 @@ Deno.test("CircuitBreaker - reopens on failure in HALF_OPEN", async () => {
 
   // Wait for HALF_OPEN
   await delay(60);
-  assertEquals(breaker.getState(url), "HALF_OPEN");
+  expect(breaker.getState(url)).toBe("HALF_OPEN");
 
   // Allow a request
-  assert(breaker.isAllowed(url));
+  expect(breaker.isAllowed(url)).toBe(true);
 
   // Record failure - should go back to OPEN
   breaker.recordFailure(url);
-  assertEquals(breaker.getState(url), "OPEN");
+  expect(breaker.getState(url)).toBe("OPEN");
 });
 
-Deno.test("CircuitBreaker - groupByDomain groups by hostname", () => {
+test("CircuitBreaker - groupByDomain groups by hostname", () => {
   const breaker = new CircuitBreaker({
     failureThreshold: 2,
     getGroupFunc: groupByDomain,
@@ -170,14 +170,14 @@ Deno.test("CircuitBreaker - groupByDomain groups by hostname", () => {
   // Fail api1
   breaker.recordFailure("http://api1.example.com/users");
   breaker.recordFailure("http://api1.example.com/posts");
-  assertEquals(breaker.getState("http://api1.example.com/anything"), "OPEN");
+  expect(breaker.getState("http://api1.example.com/anything")).toBe("OPEN");
 
   // api2 should still be closed
-  assertEquals(breaker.getState("http://api2.example.com/anything"), "CLOSED");
-  assert(breaker.isAllowed("http://api2.example.com/anything"));
+  expect(breaker.getState("http://api2.example.com/anything")).toBe("CLOSED");
+  expect(breaker.isAllowed("http://api2.example.com/anything")).toBe(true);
 });
 
-Deno.test("CircuitBreaker - failure window expiration", async () => {
+test("CircuitBreaker - failure window expiration", async () => {
   const breaker = new CircuitBreaker({
     failureThreshold: 3,
     failureWindowMs: 50,
@@ -188,20 +188,20 @@ Deno.test("CircuitBreaker - failure window expiration", async () => {
   // Record 2 failures
   breaker.recordFailure(url);
   breaker.recordFailure(url);
-  assertEquals(breaker.getFailureCount(url), 2);
+  expect(breaker.getFailureCount(url)).toBe(2);
 
   // Wait for window to expire
   await delay(60);
 
   // Old failures should be cleaned up
-  assertEquals(breaker.getFailureCount(url), 0);
+  expect(breaker.getFailureCount(url)).toBe(0);
 
   // Need fresh failures to open
   breaker.recordFailure(url);
-  assertEquals(breaker.getState(url), "CLOSED");
+  expect(breaker.getState(url)).toBe("CLOSED");
 });
 
-Deno.test("CircuitBreaker - manual reset closes circuit", () => {
+test("CircuitBreaker - manual reset closes circuit", () => {
   const breaker = new CircuitBreaker({
     failureThreshold: 2,
   });
@@ -211,28 +211,28 @@ Deno.test("CircuitBreaker - manual reset closes circuit", () => {
   // Open the circuit
   breaker.recordFailure(url);
   breaker.recordFailure(url);
-  assertEquals(breaker.getState(url), "OPEN");
+  expect(breaker.getState(url)).toBe("OPEN");
 
   // Manual reset
   breaker.reset(url);
-  assertEquals(breaker.getState(url), "CLOSED");
-  assert(breaker.isAllowed(url));
+  expect(breaker.getState(url)).toBe("CLOSED");
+  expect(breaker.isAllowed(url)).toBe(true);
 });
 
-Deno.test("CircuitBreaker - manual trip opens circuit", () => {
+test("CircuitBreaker - manual trip opens circuit", () => {
   const breaker = new CircuitBreaker();
 
   const url = "http://example.com/api";
 
-  assertEquals(breaker.getState(url), "CLOSED");
+  expect(breaker.getState(url)).toBe("CLOSED");
 
   // Manual trip
   breaker.trip(url);
-  assertEquals(breaker.getState(url), "OPEN");
-  assertFalse(breaker.isAllowed(url));
+  expect(breaker.getState(url)).toBe("OPEN");
+  expect(breaker.isAllowed(url)).toBe(false);
 });
 
-Deno.test("CircuitBreaker - callbacks are triggered", async () => {
+test("CircuitBreaker - callbacks are triggered", async () => {
   const events: string[] = [];
 
   const breaker = new CircuitBreaker({
@@ -250,21 +250,16 @@ Deno.test("CircuitBreaker - callbacks are triggered", async () => {
   // Open circuit
   breaker.recordFailure(url);
   breaker.recordFailure(url);
-  assertEquals(events, ["CLOSED->OPEN", "open:global"]);
+  expect(events).toEqual(["CLOSED->OPEN", "open:global"]);
 
   // Wait for HALF_OPEN
   await delay(60);
   breaker.isAllowed(url); // Triggers transition check
-  assertEquals(events, [
-    "CLOSED->OPEN",
-    "open:global",
-    "OPEN->HALF_OPEN",
-    "halfOpen:global",
-  ]);
+  expect(events).toEqual(["CLOSED->OPEN", "open:global", "OPEN->HALF_OPEN", "halfOpen:global"]);
 
   // Close circuit
   breaker.recordSuccess(url);
-  assertEquals(events, [
+  expect(events).toEqual([
     "CLOSED->OPEN",
     "open:global",
     "OPEN->HALF_OPEN",
@@ -274,7 +269,7 @@ Deno.test("CircuitBreaker - callbacks are triggered", async () => {
   ]);
 });
 
-Deno.test("CircuitBreaker - per-group options override global", () => {
+test("CircuitBreaker - per-group options override global", () => {
   const breaker = new CircuitBreaker({
     failureThreshold: 5,
     groups: {
@@ -286,15 +281,15 @@ Deno.test("CircuitBreaker - per-group options override global", () => {
   // api.example.com has threshold of 2
   breaker.recordFailure("http://api.example.com/users");
   breaker.recordFailure("http://api.example.com/users");
-  assertEquals(breaker.getState("http://api.example.com/users"), "OPEN");
+  expect(breaker.getState("http://api.example.com/users")).toBe("OPEN");
 
   // other.example.com has threshold of 5
   breaker.recordFailure("http://other.example.com/users");
   breaker.recordFailure("http://other.example.com/users");
-  assertEquals(breaker.getState("http://other.example.com/users"), "CLOSED");
+  expect(breaker.getState("http://other.example.com/users")).toBe("CLOSED");
 });
 
-Deno.test("CircuitBreaker - getTimeSinceOpen returns correct value", () => {
+test("CircuitBreaker - getTimeSinceOpen returns correct value", () => {
   const breaker = new CircuitBreaker({
     failureThreshold: 2,
   });
@@ -302,7 +297,7 @@ Deno.test("CircuitBreaker - getTimeSinceOpen returns correct value", () => {
   const url = "http://example.com/api";
 
   // Not open yet
-  assertEquals(breaker.getTimeSinceOpen(url), null);
+  expect(breaker.getTimeSinceOpen(url)).toBeNull();
 
   // Open the circuit
   breaker.recordFailure(url);
@@ -310,12 +305,12 @@ Deno.test("CircuitBreaker - getTimeSinceOpen returns correct value", () => {
 
   // Should return small positive number
   const timeSince = breaker.getTimeSinceOpen(url);
-  assert(timeSince !== null);
-  assert(timeSince >= 0);
-  assert(timeSince < 100); // Should be very recent
+  expect(timeSince).not.toBeNull();
+  expect(timeSince).toBeGreaterThanOrEqual(0);
+  expect(timeSince).toBeLessThan(100); // Should be very recent
 });
 
-Deno.test("CircuitBreaker - getTimeUntilHalfOpen returns correct value", async () => {
+test("CircuitBreaker - getTimeUntilHalfOpen returns correct value", async () => {
   const breaker = new CircuitBreaker({
     failureThreshold: 2,
     openDurationMs: 100,
@@ -324,7 +319,7 @@ Deno.test("CircuitBreaker - getTimeUntilHalfOpen returns correct value", async (
   const url = "http://example.com/api";
 
   // Not open yet
-  assertEquals(breaker.getTimeUntilHalfOpen(url), null);
+  expect(breaker.getTimeUntilHalfOpen(url)).toBeNull();
 
   // Open the circuit
   breaker.recordFailure(url);
@@ -332,22 +327,22 @@ Deno.test("CircuitBreaker - getTimeUntilHalfOpen returns correct value", async (
 
   // Should return time remaining
   const timeUntil = breaker.getTimeUntilHalfOpen(url);
-  assert(timeUntil !== null);
-  assert(timeUntil > 0);
-  assert(timeUntil <= 100);
+  expect(timeUntil).not.toBeNull();
+  expect(timeUntil).toBeGreaterThan(0);
+  expect(timeUntil).toBeLessThanOrEqual(100);
 
   // Wait and check again
   await delay(60);
   const timeUntil2 = breaker.getTimeUntilHalfOpen(url);
-  assert(timeUntil2 !== null);
-  assert(timeUntil2 < timeUntil!);
+  expect(timeUntil2).not.toBeNull();
+  expect(timeUntil2).toBeLessThan(timeUntil!);
 });
 
 // ============================================
 // CircuitBreakerMiddleware Tests
 // ============================================
 
-Deno.test("CircuitBreakerMiddleware - allows requests when closed", async () => {
+test("CircuitBreakerMiddleware - allows requests when closed", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(200, { value: 42 });
 
@@ -360,11 +355,11 @@ Deno.test("CircuitBreakerMiddleware - allows requests when closed", async () => 
   const client = provider.getFetchClient();
   const response = await client.getJSON("https://api.example.com/api/data");
 
-  assertEquals(response.status, 200);
-  assertEquals(response.data, { value: 42 });
+  expect(response.status).toBe(200);
+  expect(response.data).toEqual({ value: 42 });
 });
 
-Deno.test("CircuitBreakerMiddleware - records failures for 5xx", async () => {
+test("CircuitBreakerMiddleware - records failures for 5xx", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(500, { error: "Internal Server Error" });
 
@@ -381,16 +376,16 @@ Deno.test("CircuitBreakerMiddleware - records failures for 5xx", async () => {
   await client.getJSON("https://api.example.com/api/data", {
     expectedStatusCodes: [500],
   });
-  assertEquals(breaker.getFailureCount("https://api.example.com/api/data"), 1);
+  expect(breaker.getFailureCount("https://api.example.com/api/data")).toBe(1);
 
   // Second failure - opens circuit
   await client.getJSON("https://api.example.com/api/data", {
     expectedStatusCodes: [500],
   });
-  assertEquals(breaker.getState("https://api.example.com/api/data"), "OPEN");
+  expect(breaker.getState("https://api.example.com/api/data")).toBe("OPEN");
 });
 
-Deno.test("CircuitBreakerMiddleware - records failures for 429", async () => {
+test("CircuitBreakerMiddleware - records failures for 429", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(429, { error: "Too Many Requests" });
 
@@ -407,10 +402,10 @@ Deno.test("CircuitBreakerMiddleware - records failures for 429", async () => {
   await client.getJSON("https://api.example.com/api/data", {
     expectedStatusCodes: [429],
   });
-  assertEquals(breaker.getFailureCount("https://api.example.com/api/data"), 1);
+  expect(breaker.getFailureCount("https://api.example.com/api/data")).toBe(1);
 });
 
-Deno.test("CircuitBreakerMiddleware - returns 503 when open", async () => {
+test("CircuitBreakerMiddleware - returns 503 when open", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(500, { error: "Internal Server Error" });
 
@@ -436,15 +431,15 @@ Deno.test("CircuitBreakerMiddleware - returns 503 when open", async () => {
     expectedStatusCodes: [503],
   });
 
-  assertEquals(response.status, 503);
+  expect(response.status).toBe(503);
   assert(response.headers.get("Retry-After"));
   assert(response.problem.detail?.includes("Circuit breaker is open"));
 
   // Mock should not have been called for the 503 request
-  assertEquals(mocks.history.all.length, 2);
+  expect(mocks.history.all.length).toBe(2);
 });
 
-Deno.test("CircuitBreakerMiddleware - throws CircuitOpenError when configured", async () => {
+test("CircuitBreakerMiddleware - throws CircuitOpenError when configured", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(500, { error: "Internal Server Error" });
 
@@ -472,12 +467,12 @@ Deno.test("CircuitBreakerMiddleware - throws CircuitOpenError when configured", 
     throw new Error("Should have thrown");
   } catch (e) {
     assert(e instanceof CircuitOpenError);
-    assertEquals(e.group, "global");
-    assert(e.retryAfter > 0);
+    expect(e.group).toBe("global");
+    expect(e.retryAfter).toBeGreaterThan(0);
   }
 });
 
-Deno.test("CircuitBreakerMiddleware - records network errors as failures", async () => {
+test("CircuitBreakerMiddleware - records network errors as failures", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").networkError("Connection refused");
 
@@ -497,10 +492,10 @@ Deno.test("CircuitBreakerMiddleware - records network errors as failures", async
     // Expected
   }
 
-  assertEquals(breaker.getFailureCount("https://api.example.com/api/data"), 1);
+  expect(breaker.getFailureCount("https://api.example.com/api/data")).toBe(1);
 });
 
-Deno.test("CircuitBreakerMiddleware - per-domain isolation", async () => {
+test("CircuitBreakerMiddleware - per-domain isolation", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(500, { error: "Error" });
 
@@ -523,13 +518,13 @@ Deno.test("CircuitBreakerMiddleware - per-domain isolation", async () => {
   });
 
   // api1 should be open
-  assertEquals(breaker.getState("https://api1.example.com/api/data"), "OPEN");
+  expect(breaker.getState("https://api1.example.com/api/data")).toBe("OPEN");
 
   // api2 should still be closed
-  assertEquals(breaker.getState("https://api2.example.com/api/data"), "CLOSED");
+  expect(breaker.getState("https://api2.example.com/api/data")).toBe("CLOSED");
 });
 
-Deno.test("CircuitBreakerMiddleware - custom isFailure function", async () => {
+test("CircuitBreakerMiddleware - custom isFailure function", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(400, { error: "Bad Request" });
 
@@ -547,10 +542,10 @@ Deno.test("CircuitBreakerMiddleware - custom isFailure function", async () => {
   await client.getJSON("https://api.example.com/api/data", {
     expectedStatusCodes: [400],
   });
-  assertEquals(breaker.getFailureCount("https://api.example.com/api/data"), 1);
+  expect(breaker.getFailureCount("https://api.example.com/api/data")).toBe(1);
 });
 
-Deno.test("CircuitBreakerMiddleware - recovery after HALF_OPEN success", async () => {
+test("CircuitBreakerMiddleware - recovery after HALF_OPEN success", async () => {
   const mocks = new MockRegistry();
   // First 2 requests fail, then succeed
   mocks.onGet("/api/data").replyOnce(500, { error: "Error" });
@@ -575,18 +570,18 @@ Deno.test("CircuitBreakerMiddleware - recovery after HALF_OPEN success", async (
   await client.getJSON("https://api.example.com/api/data", {
     expectedStatusCodes: [500],
   });
-  assertEquals(breaker.getState("https://api.example.com/api/data"), "OPEN");
+  expect(breaker.getState("https://api.example.com/api/data")).toBe("OPEN");
 
   // Wait for HALF_OPEN
   await delay(60);
 
   // Successful request should close the circuit
   const response = await client.getJSON("https://api.example.com/api/data");
-  assertEquals(response.status, 200);
-  assertEquals(breaker.getState("https://api.example.com/api/data"), "CLOSED");
+  expect(response.status).toBe(200);
+  expect(breaker.getState("https://api.example.com/api/data")).toBe("CLOSED");
 });
 
-Deno.test("CircuitBreakerMiddleware - combined with rate limiting", async () => {
+test("CircuitBreakerMiddleware - combined with rate limiting", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(200, { value: 42 });
 
@@ -599,14 +594,14 @@ Deno.test("CircuitBreakerMiddleware - combined with rate limiting", async () => 
 
   // Both middlewares should work together
   const response = await client.getJSON("https://api.example.com/api/data");
-  assertEquals(response.status, 200);
+  expect(response.status).toBe(200);
 
   // Verify both are configured
   assert(provider.rateLimiter);
   assert(provider.circuitBreaker);
 });
 
-Deno.test("CircuitBreakerMiddleware - removeCircuitBreaker works", async () => {
+test("CircuitBreakerMiddleware - removeCircuitBreaker works", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(500, { error: "Error" });
 
@@ -624,11 +619,11 @@ Deno.test("CircuitBreakerMiddleware - removeCircuitBreaker works", async () => {
 
   // Remove circuit breaker
   provider.removeCircuitBreaker();
-  assertEquals(provider.circuitBreaker, undefined);
+  expect(provider.circuitBreaker).toBeUndefined();
 
   // Requests should now go through (no 503)
   const response = await client.getJSON("https://api.example.com/api/data", {
     expectedStatusCodes: [500],
   });
-  assertEquals(response.status, 500); // Real response, not 503
+  expect(response.status).toBe(500); // Real response, not 503
 });

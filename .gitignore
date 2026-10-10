@@ -1,8 +1,16 @@
-.DS_Store
-/npm
+node_modules
+dist
+coverage
+*.log
 *.tgz
-*.lcov
-/cov
+.DS_Store
+!.vscode/
+!.vscode/settings.json
+!.vscode/extensions.json
 
-nul
+# dotenv environment variable files
+.env
+.env.*
+!.env.example
+
 .claude/settings.local.json

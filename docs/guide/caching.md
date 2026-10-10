@@ -13,22 +13,16 @@ import { FetchClient } from "@foundatiofx/fetchclient";
 type Todo = { userId: number; id: number; title: string; completed: boolean };
 
 const client = new FetchClient();
-const response = await client.getJSON<Todo>(
-  "https://jsonplaceholder.typicode.com/todos/1",
-  {
-    cacheKey: ["todos", "1"],
-    cacheDuration: 1000 * 60, // 1 minute
-  },
-);
+const response = await client.getJSON<Todo>("https://jsonplaceholder.typicode.com/todos/1", {
+  cacheKey: ["todos", "1"],
+  cacheDuration: 1000 * 60, // 1 minute
+});
 
 // Subsequent calls with the same cacheKey return cached data
-const cached = await client.getJSON<Todo>(
-  "https://jsonplaceholder.typicode.com/todos/1",
-  {
-    cacheKey: ["todos", "1"],
-    cacheDuration: 1000 * 60,
-  },
-);
+const cached = await client.getJSON<Todo>("https://jsonplaceholder.typicode.com/todos/1", {
+  cacheKey: ["todos", "1"],
+  cacheDuration: 1000 * 60,
+});
 // No network request made - data comes from cache
 ```
 

@@ -99,25 +99,25 @@ export class RateLimiter {
     // Use group-specific options if available, otherwise fall back to global options
     const maxRequests = groupOptions.maxRequests ?? 0;
     const windowSeconds = groupOptions.windowSeconds ?? 0;
-    const onRateLimitExceeded = groupOptions.onRateLimitExceeded ??
-      this.options.onRateLimitExceeded;
+    const onRateLimitExceeded =
+      groupOptions.onRateLimitExceeded ?? this.options.onRateLimitExceeded;
 
     let bucket = this.buckets.get(key);
     if (!bucket) {
       bucket = {
         requests: [],
-        resetTime: now + (windowSeconds * 1000),
+        resetTime: now + windowSeconds * 1000,
       };
       this.buckets.set(key, bucket);
     }
 
     // Clean up old requests outside the time window
-    const windowStart = now - (windowSeconds * 1000);
+    const windowStart = now - windowSeconds * 1000;
     bucket.requests = bucket.requests.filter((time) => time > windowStart);
 
     // Update reset time if all requests have expired
     if (bucket.requests.length === 0) {
-      bucket.resetTime = now + (windowSeconds * 1000);
+      bucket.resetTime = now + windowSeconds * 1000;
     }
 
     // Check if we're within the rate limit
@@ -147,7 +147,7 @@ export class RateLimiter {
 
     const now = Date.now();
     const windowSeconds = groupOptions.windowSeconds ?? 0;
-    const windowStart = now - (windowSeconds * 1000);
+    const windowStart = now - windowSeconds * 1000;
     return bucket.requests.filter((time) => time > windowStart).length;
   }
 
@@ -161,10 +161,7 @@ export class RateLimiter {
     const groupOptions = this.getGroupOptions(key);
     const maxRequests = groupOptions.maxRequests ?? 0;
 
-    return Math.max(
-      0,
-      maxRequests - this.getRequestCount(url),
-    );
+    return Math.max(0, maxRequests - this.getRequestCount(url));
   }
 
   /**
@@ -226,10 +223,7 @@ export class RateLimiter {
    * @param group - The group key
    * @param options - The options to set
    */
-  public setGroupOptions(
-    group: string,
-    options: GroupRateLimiterOptions,
-  ): void {
+  public setGroupOptions(group: string, options: GroupRateLimiterOptions): void {
     this.groupOptions.set(group, options);
   }
 
@@ -238,10 +232,7 @@ export class RateLimiter {
    * @param url - The request URL
    * @param options - The options to set for this group
    */
-  public setOptionsForRequest(
-    url: string,
-    options: GroupRateLimiterOptions,
-  ): void {
+  public setOptionsForRequest(url: string, options: GroupRateLimiterOptions): void {
     const group = this.getGroup(url);
     this.setGroupOptions(group, options);
   }
@@ -249,13 +240,9 @@ export class RateLimiter {
   /**
    * Updates rate limit options for a request based on standard rate limit headers.
    * @param url - The request URL
-   * @param method - The HTTP method
    * @param headers - The response headers containing rate limit information
    */
-  public updateFromHeadersForRequest(
-    url: string,
-    headers: Headers,
-  ): void {
+  public updateFromHeadersForRequest(url: string, headers: Headers): void {
     const group = this.getGroup(url);
     this.updateFromHeaders(group, headers);
   }
@@ -267,9 +254,7 @@ export class RateLimiter {
    */
   public updateFromHeaders(group: string, headers: Headers): void {
     // Get existing group-specific options (not global fallback)
-    const currentOptions = this.hasGroupOptions(group)
-      ? this.groupOptions.get(group)!
-      : {};
+    const currentOptions = this.hasGroupOptions(group) ? this.groupOptions.get(group)! : {};
     const newOptions: GroupRateLimiterOptions = { ...currentOptions };
 
     // Parse IETF standard rate limit headers first, then fall back to x-ratelimit headers
@@ -299,18 +284,15 @@ export class RateLimiter {
 
     // Fall back to x-ratelimit headers if IETF headers not found
     if (!limit) {
-      limit = headers.get("x-ratelimit-limit") ||
-        headers.get("x-rate-limit-limit");
+      limit = headers.get("x-ratelimit-limit") || headers.get("x-rate-limit-limit");
     }
 
     if (!window) {
-      window = headers.get("x-ratelimit-window") ||
-        headers.get("x-rate-limit-window");
+      window = headers.get("x-ratelimit-window") || headers.get("x-rate-limit-window");
     }
 
     if (!reset) {
-      reset = headers.get("x-ratelimit-reset") ||
-        headers.get("x-rate-limit-reset");
+      reset = headers.get("x-ratelimit-reset") || headers.get("x-rate-limit-reset");
     }
 
     let hasChanges = false;
@@ -390,9 +372,7 @@ export interface RateLimitInfo {
  * @param info - The rate limit information
  * @returns The formatted RateLimit header value
  */
-export function buildRateLimitHeader(
-  info: Omit<RateLimitInfo, "limit" | "windowSeconds">,
-): string {
+export function buildRateLimitHeader(info: Omit<RateLimitInfo, "limit" | "windowSeconds">): string {
   let headerValue = `"${info.policy}";r=${info.remaining}`;
 
   if (info.resetSeconds > 0) {
@@ -424,9 +404,7 @@ export function buildRateLimitPolicyHeader(
  * @param headerValue - The RateLimit header value to parse
  * @returns The parsed rate limit information or null if invalid
  */
-export function parseRateLimitHeader(
-  headerValue: string,
-): Partial<RateLimitInfo> | null {
+export function parseRateLimitHeader(headerValue: string): Partial<RateLimitInfo> | null {
   if (!headerValue) return null;
 
   try {
@@ -461,9 +439,7 @@ export function parseRateLimitHeader(
  * @param headerValue - The RateLimit-Policy header value to parse
  * @returns The parsed rate limit policy information or null if invalid
  */
-export function parseRateLimitPolicyHeader(
-  headerValue: string,
-): Partial<RateLimitInfo> | null {
+export function parseRateLimitPolicyHeader(headerValue: string): Partial<RateLimitInfo> | null {
   if (!headerValue) return null;
 
   try {

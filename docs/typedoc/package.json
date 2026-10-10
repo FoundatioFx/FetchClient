@@ -1,0 +1,16 @@
+{
+  "name": "@foundatiofx/fetchclient-typedoc",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Generates the FetchClient API reference for the docs site",
+  "type": "module",
+  "scripts": {
+    "build": "typedoc"
+  },
+  "devDependencies": {
+    "typedoc": "^0.28.20",
+    "typedoc-plugin-markdown": "^4.13.1",
+    "typedoc-vitepress-theme": "^1.1.4",
+    "typescript": "~6.0.3"
+  }
+}

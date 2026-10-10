@@ -68,9 +68,7 @@ fc.use(fc.middleware.retry({ limit: 3 }));
 
 // Rate limiting
 fc.use(fc.middleware.rateLimit({ maxRequests: 100, windowSeconds: 60 }));
-fc.use(
-  fc.middleware.perDomainRateLimit({ maxRequests: 50, windowSeconds: 60 }),
-);
+fc.use(fc.middleware.perDomainRateLimit({ maxRequests: 50, windowSeconds: 60 }));
 
 // Circuit breaker
 fc.use(fc.middleware.circuitBreaker({ failureThreshold: 5 }));
@@ -96,20 +94,14 @@ fc.use(async (ctx, next) => {
 ## Model Validator
 
 ```ts
-import {
-  FetchClient,
-  ProblemDetails,
-  setModelValidator,
-} from "@foundatiofx/fetchclient";
+import { FetchClient, ProblemDetails, setModelValidator } from "@foundatiofx/fetchclient";
 
 setModelValidator(async (data: object | null) => {
   // use zod or any other validator
   const problem = new ProblemDetails();
   const d = data as { password: string };
   if (d?.password?.length < 6) {
-    problem.errors.password = [
-      "Password must be longer than or equal to 6 characters.",
-    ];
+    problem.errors.password = ["Password must be longer than or equal to 6 characters."];
   }
   return problem;
 });
@@ -117,10 +109,7 @@ setModelValidator(async (data: object | null) => {
 const client = new FetchClient();
 const data = { email: "test@test", password: "test" };
 
-const response = await client.postJSON(
-  "https://jsonplaceholder.typicode.com/todos/1",
-  data,
-);
+const response = await client.postJSON("https://jsonplaceholder.typicode.com/todos/1", data);
 
 if (!response.ok) {
   console.log(response.problem.detail);
@@ -135,13 +124,10 @@ import { FetchClient } from "@foundatiofx/fetchclient";
 type Todo = { userId: number; id: number; title: string; completed: boolean };
 
 const client = new FetchClient();
-const response = await client.getJSON<Todo>(
-  `https://jsonplaceholder.typicode.com/todos/1`,
-  {
-    cacheKey: ["todos", "1"],
-    cacheDuration: 1000 * 60, // 1 minute
-  },
-);
+const response = await client.getJSON<Todo>(`https://jsonplaceholder.typicode.com/todos/1`, {
+  cacheKey: ["todos", "1"],
+  cacheDuration: 1000 * 60, // 1 minute
+});
 
 // Invalidate programmatically
 client.cache.delete(["todos", "1"]);
@@ -210,10 +196,7 @@ for a period, allowing the service time to recover.
 ### Basic Usage
 
 ```ts
-import {
-  FetchClientProvider,
-  useCircuitBreaker,
-} from "@foundatiofx/fetchclient";
+import { FetchClientProvider, useCircuitBreaker } from "@foundatiofx/fetchclient";
 
 const provider = new FetchClientProvider();
 provider.setBaseUrl("https://api.example.com");

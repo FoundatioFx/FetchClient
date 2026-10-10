@@ -2,6 +2,12 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
+      - "release/npm/**"
+    tags:
+      - "v*"
+  pull_request:
   workflow_call:
   workflow_dispatch:
     inputs:
@@ -10,8 +16,11 @@ on:
         required: true
         type: string
 
+permissions:
+  contents: read
+
 jobs:
-  lint:
+  build:
     runs-on: ubuntu-24.04
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -20,9 +29,13 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Build Reason
-        run: "echo ref: ${{github.ref}} event: ${{github.event_name}}"
+        env:
+          GIT_REF: ${{ github.ref }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: 'echo "ref: $GIT_REF event: $EVENT_NAME"'
 
       - name: Build Version
         id: version
@@ -38,88 +51,110 @@ jobs:
             dotnet tool install --global minver-cli --version 7.0.0
             version=$(minver --tag-prefix v)
           fi
-          echo "version=$version" >> $GITHUB_OUTPUT
-          echo "### Version: $version" >> $GITHUB_STEP_SUMMARY
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$version' is not a valid semver version."
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "### Version: $version" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1.21.1
         with:
-          deno-version: v2.x
+          node-version-file: .node-version
+          cache: true
 
-      - name: Code Style
-        run: deno fmt --check
+      - name: Check
+        run: vp check
 
-      - name: Linting
-        run: deno lint
+      - name: Test
+        run: vp test --project unit --coverage
 
-      - name: Type Check
-        run: deno task check
+      - name: Set Package Version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: vp pm version "$VERSION" -- --no-git-tag-version --no-git-checks
 
-  deno:
+      - name: Pack
+        run: |
+          vp pack
+          vp pm pack --out "$RUNNER_TEMP/fetchclient.tgz"
+
+      - name: Show Package
+        run: tar -xOzf "$RUNNER_TEMP/fetchclient.tgz" package/package.json
+
+      - name: Upload Package
+        uses: actions/upload-artifact@v7
+        with:
+          name: npm-package
+          path: ${{ runner.temp }}/fetchclient.tgz
+          if-no-files-found: error
+
+  # Calls real third-party APIs, so it reports problems without gating publishing.
+  integration:
     runs-on: ubuntu-24.04
-    needs: lint
-    permissions:
-      contents: read
-      id-token: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
         with:
-          fetch-depth: 0
+          persist-credentials: false
 
-      - name: Setup Deno
-        uses: denoland/setup-deno@v2
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1.21.1
         with:
-          deno-version: v2.x
+          node-version-file: .node-version
+          cache: true
 
-      - name: Tests
-        run: |
-          deno test --allow-net --coverage=cov/ src/tests
-          deno coverage cov/
+      - name: Integration Tests
+        run: vp test --project integration
 
-      - name: Publish Release Package
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: deno publish --set-version ${{ needs.lint.outputs.version }}
-
-  npm:
+  docs:
     runs-on: ubuntu-24.04
-    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1.21.1
+        with:
+          node-version-file: .node-version
+          cache: true
+
+      - name: Build Documentation
+        run: vp run docs:build
+
+  publish:
+    runs-on: ubuntu-24.04
+    needs: build
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/npm/') || github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
       packages: write
       id-token: write
     steps:
-      - name: Checkout
-        uses: actions/checkout@v7
+      # No checkout here: npm refuses to run inside the repo because devEngines pins pnpm.
+      - name: Download Package
+        uses: actions/download-artifact@v8
         with:
-          fetch-depth: 0
+          name: npm-package
 
-      - uses: denoland/setup-deno@v2
-        with:
-          deno-version: v2.x
-
-      - name: Build NPM Package
-        run: deno task build --set-version ${{ needs.lint.outputs.version }}
-
-      - name: Add NPM Package Metadata
+      - name: Resolve Dist Tag
+        id: dist-tag
         env:
-          REPOSITORY_URL: https://github.com/${{ github.repository }}
+          VERSION: ${{ needs.build.outputs.version }}
+          IS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/npm/') || github.event_name == 'workflow_dispatch' }}
         run: |
-          package_dir=$(mktemp -d)
-          tar -xzf fetchclient.tgz -C "$package_dir"
-          PACKAGE_JSON="$package_dir/package/package.json" deno eval '
-            const path = Deno.env.get("PACKAGE_JSON");
-            const repositoryUrl = Deno.env.get("REPOSITORY_URL");
-            const packageJson = JSON.parse(await Deno.readTextFile(path));
-            packageJson.repository = { type: "git", url: repositoryUrl };
-            await Deno.writeTextFile(path, `${JSON.stringify(packageJson, null, 2)}\n`);
-          '
-          tar -czf fetchclient.tgz -C "$package_dir" package
+          if [ "$IS_RELEASE" = "true" ] && [[ "$VERSION" != *-* ]]; then
+            tag=latest
+          else
+            tag=next
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "### Dist tag: $tag" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Show NPM Package
-        run: tar -xOf fetchclient.tgz package/package.json
-
-      - name: Setup Node.js environment
+      - name: Setup npm Registry
         uses: actions/setup-node@v7
         with:
           node-version: "24.x"
@@ -128,10 +163,11 @@ jobs:
 
       - name: Publish Release Package
         if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/npm/') || github.event_name == 'workflow_dispatch'
-        run: npm publish fetchclient.tgz --provenance --access public
+        env:
+          DIST_TAG: ${{ steps.dist-tag.outputs.tag }}
+        run: npm publish fetchclient.tgz --provenance --access public --tag "$DIST_TAG"
 
-      - name: Setup GitHub CI Node.js environment
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/npm/') || github.event_name == 'workflow_dispatch'
+      - name: Setup GitHub Packages Registry
         uses: actions/setup-node@v7
         with:
           node-version: "24.x"
@@ -139,13 +175,14 @@ jobs:
           scope: "@foundatiofx"
 
       - name: Push GitHub CI Packages
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/npm/') || github.event_name == 'workflow_dispatch'
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          DIST_TAG: ${{ steps.dist-tag.outputs.tag }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          package="@foundatiofx/fetchclient@${{ needs.lint.outputs.version }}"
+          package="@foundatiofx/fetchclient@$VERSION"
           if npm view "$package" version --registry https://npm.pkg.github.com > /dev/null 2>&1; then
             echo "$package already exists in GitHub Packages; skipping publish."
           else
-            npm publish fetchclient.tgz --tag ${{ (startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/npm/') || github.event_name == 'workflow_dispatch') && 'latest' || 'next' }} --access public
+            npm publish fetchclient.tgz --tag "$DIST_TAG" --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}

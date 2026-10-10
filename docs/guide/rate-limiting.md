@@ -168,10 +168,7 @@ provider.removeRateLimit();
 Group requests by custom logic instead of domain:
 
 ```ts
-import {
-  FetchClientProvider,
-  RateLimitMiddleware,
-} from "@foundatiofx/fetchclient";
+import { FetchClientProvider, RateLimitMiddleware } from "@foundatiofx/fetchclient";
 
 const provider = new FetchClientProvider();
 
@@ -192,11 +189,7 @@ provider.useMiddleware(middleware.middleware());
 ## Practical Example: API Client with Backoff
 
 ```ts
-import {
-  FetchClient,
-  FetchClientProvider,
-  RateLimitError,
-} from "@foundatiofx/fetchclient";
+import { FetchClient, FetchClientProvider, RateLimitError } from "@foundatiofx/fetchclient";
 
 const provider = new FetchClientProvider();
 provider.setBaseUrl("https://api.example.com");
@@ -208,10 +201,7 @@ provider.usePerDomainRateLimit({
 
 const client = provider.getFetchClient();
 
-async function fetchWithRetry<T>(
-  url: string,
-  maxRetries = 3,
-): Promise<T | null> {
+async function fetchWithRetry<T>(url: string, maxRetries = 3): Promise<T | null> {
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const response = await client.getJSON<T>(url);

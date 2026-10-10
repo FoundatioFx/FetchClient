@@ -130,7 +130,8 @@ export class CircuitBreakerMiddleware {
         const problem = new ProblemDetails();
         problem.status = 503;
         problem.title = "Service Unavailable";
-        problem.detail = this.#errorMessage ??
+        problem.detail =
+          this.#errorMessage ??
           `Circuit breaker is open for ${group}. Service may be experiencing issues.`;
 
         const headers = new Headers({

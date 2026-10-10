@@ -11,7 +11,7 @@ export type CacheTag = string;
 /**
  * Represents an entry in the FetchClientCache.
  */
-type CacheEntry = {
+export type CacheEntry = {
   key: CacheKey;
   tags: CacheTag[];
   lastAccess: Date;
@@ -33,12 +33,7 @@ export class FetchClientCache {
    * @param cacheDuration - The duration for which the response should be cached (in milliseconds).
    * @param tags - Optional tags for grouping and invalidating cache entries.
    */
-  public set(
-    key: CacheKey,
-    response: Response,
-    cacheDuration?: number,
-    tags?: CacheTag[],
-  ): void {
+  public set(key: CacheKey, response: Response, cacheDuration?: number, tags?: CacheTag[]): void {
     const hash = this.getHash(key);
     const normalizedTags = tags ?? [];
 
@@ -156,9 +151,7 @@ export class FetchClientCache {
    * @returns An array of all cache tags.
    */
   public getTags(): CacheTag[] {
-    return Array.from(this.tagIndex.keys()).filter((tag) =>
-      this.tagIndex.get(tag)!.size > 0
-    );
+    return Array.from(this.tagIndex.keys()).filter((tag) => this.tagIndex.get(tag)!.size > 0);
   }
 
   /**

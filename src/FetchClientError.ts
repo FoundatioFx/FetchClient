@@ -8,15 +8,8 @@ import { getStatusText } from "./HttpStatusText.ts";
 export class FetchClientError extends Error {
   public readonly response: FetchClientResponse<unknown>;
 
-  constructor(
-    response: FetchClientResponse<unknown>,
-    message?: string,
-  ) {
-    super(
-      message ??
-        response.problem?.title ??
-        getStatusText(response.status),
-    );
+  constructor(response: FetchClientResponse<unknown>, message?: string) {
+    super(message ?? response.problem?.title ?? getStatusText(response.status));
     this.name = "FetchClientError";
     this.response = response;
   }
@@ -89,9 +82,7 @@ export class FetchClientError extends Error {
     return this.response.formData();
   }
 
-  // @ts-ignore: New in Deno 1.44
   bytes(): Promise<Uint8Array> {
-    // @ts-ignore: New in Deno 1.44
     return this.response.bytes();
   }
 
@@ -108,11 +99,7 @@ export class FetchClientDeserializationError extends FetchClientError {
   public override readonly cause: unknown;
   public readonly responseText: string;
 
-  constructor(
-    response: FetchClientResponse<unknown>,
-    cause: unknown,
-    responseText: string,
-  ) {
+  constructor(response: FetchClientResponse<unknown>, cause: unknown, responseText: string) {
     const detail = cause instanceof Error ? cause.message : String(cause);
     super(response, `Unable to deserialize response data: ${detail}`);
     this.name = "FetchClientDeserializationError";
