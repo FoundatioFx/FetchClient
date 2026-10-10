@@ -4,9 +4,9 @@
  */
 
 import { assert, expect, test } from "vite-plus/test";
-import { FetchClient, getJSON, useFetchClient } from "../src/index.ts";
-import { FetchClientProvider } from "../src/FetchClientProvider.ts";
-import { buildRateLimitHeader, buildRateLimitPolicyHeader } from "../src/RateLimiter.ts";
+import { FetchClient, getJSON, useFetchClient } from "../../src/index.ts";
+import { FetchClientProvider } from "../../src/FetchClientProvider.ts";
+import { buildRateLimitHeader, buildRateLimitPolicyHeader } from "../../src/RateLimiter.ts";
 
 type Products = {
   products: Array<{ id: number; name: string }>;

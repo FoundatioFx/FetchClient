@@ -2,6 +2,12 @@ name: CI
 
 on:
   push:
+    branches:
+      - main
+      - "release/npm/**"
+    tags:
+      - "v*"
+  pull_request:
   workflow_call:
   workflow_dispatch:
     inputs:
@@ -9,6 +15,9 @@ on:
         description: Version to publish to npm and GitHub Packages
         required: true
         type: string
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -20,9 +29,13 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Build Reason
-        run: "echo ref: ${{github.ref}} event: ${{github.event_name}}"
+        env:
+          GIT_REF: ${{ github.ref }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: 'echo "ref: $GIT_REF event: $EVENT_NAME"'
 
       - name: Build Version
         id: version
@@ -38,6 +51,10 @@ jobs:
             dotnet tool install --global minver-cli --version 7.0.0
             version=$(minver --tag-prefix v)
           fi
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::'$version' is not a valid semver version."
+            exit 1
+          fi
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "### Version: $version" >> "$GITHUB_STEP_SUMMARY"
 
@@ -51,10 +68,12 @@ jobs:
         run: vp check
 
       - name: Test
-        run: vp test --coverage
+        run: vp test --project unit --coverage
 
       - name: Set Package Version
-        run: vp pm version "${{ steps.version.outputs.version }}" -- --no-git-tag-version --no-git-checks
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: vp pm version "$VERSION" -- --no-git-tag-version --no-git-checks
 
       - name: Pack
         run: |
@@ -70,6 +89,41 @@ jobs:
           name: npm-package
           path: ${{ runner.temp }}/fetchclient.tgz
           if-no-files-found: error
+
+  # Calls real third-party APIs, so it reports problems without gating publishing.
+  integration:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1.21.1
+        with:
+          node-version-file: .node-version
+          cache: true
+
+      - name: Integration Tests
+        run: vp test --project integration
+
+  docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Vite+
+        uses: voidzero-dev/setup-vp@v1.21.1
+        with:
+          node-version-file: .node-version
+          cache: true
+
+      - name: Build Documentation
+        run: vp run docs:build
 
   publish:
     runs-on: ubuntu-24.04
@@ -109,7 +163,9 @@ jobs:
 
       - name: Publish Release Package
         if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/npm/') || github.event_name == 'workflow_dispatch'
-        run: npm publish fetchclient.tgz --provenance --access public --tag ${{ steps.dist-tag.outputs.tag }}
+        env:
+          DIST_TAG: ${{ steps.dist-tag.outputs.tag }}
+        run: npm publish fetchclient.tgz --provenance --access public --tag "$DIST_TAG"
 
       - name: Setup GitHub Packages Registry
         uses: actions/setup-node@v7
@@ -119,12 +175,14 @@ jobs:
           scope: "@foundatiofx"
 
       - name: Push GitHub CI Packages
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          DIST_TAG: ${{ steps.dist-tag.outputs.tag }}
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          package="@foundatiofx/fetchclient@${{ needs.build.outputs.version }}"
+          package="@foundatiofx/fetchclient@$VERSION"
           if npm view "$package" version --registry https://npm.pkg.github.com > /dev/null 2>&1; then
             echo "$package already exists in GitHub Packages; skipping publish."
           else
-            npm publish fetchclient.tgz --tag ${{ steps.dist-tag.outputs.tag }} --access public
+            npm publish fetchclient.tgz --tag "$DIST_TAG" --access public
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}

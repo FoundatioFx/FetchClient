@@ -9,6 +9,9 @@ It sets up Node.js, pnpm, dependencies, and the pre-commit hook.
 
 - Format, lint, and type check: `vp check` (`vp check --fix` to auto-fix)
 - Run tests: `vp test` (`vp test watch` for watch mode)
+  - Unit tests only (offline): `vp test --project unit`
+  - Integration tests against real APIs (`tests/integration/`):
+    `vp test --project integration`
 - Coverage: `vp test --coverage`
 - Build the package: `vp pack`
 

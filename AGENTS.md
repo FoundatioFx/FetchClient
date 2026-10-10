@@ -55,7 +55,9 @@ concrete, and specific to FetchClient.
 
 - Install: `vp install`
 - Format, lint, and type check: `vp check` (`vp check --fix` to auto-fix)
-- Run tests: `vp test` (integration tests hit real APIs)
+- Run tests: `vp test` (all), `vp test --project unit` (offline; gates CI and
+  publishing), `vp test --project integration` (hits real APIs in
+  `tests/integration/`)
 - Build package: `vp pack` (emits `dist/`, regenerates `exports` in
   `package.json`, and runs publint and attw)
 - Docs: `vp run docs:dev`, `vp run docs:build`
