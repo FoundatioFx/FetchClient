@@ -86,6 +86,20 @@ jobs:
         with:
           name: npm-package
 
+      - name: Resolve Dist Tag
+        id: dist-tag
+        env:
+          VERSION: ${{ needs.build.outputs.version }}
+          IS_RELEASE: ${{ startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/npm/') || github.event_name == 'workflow_dispatch' }}
+        run: |
+          if [ "$IS_RELEASE" = "true" ] && [[ "$VERSION" != *-* ]]; then
+            tag=latest
+          else
+            tag=next
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "### Dist tag: $tag" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Setup npm Registry
         uses: actions/setup-node@v7
         with:
@@ -95,7 +109,7 @@ jobs:
 
       - name: Publish Release Package
         if: startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/npm/') || github.event_name == 'workflow_dispatch'
-        run: npm publish fetchclient.tgz --provenance --access public
+        run: npm publish fetchclient.tgz --provenance --access public --tag ${{ steps.dist-tag.outputs.tag }}
 
       - name: Setup GitHub Packages Registry
         uses: actions/setup-node@v7
@@ -110,7 +124,7 @@ jobs:
           if npm view "$package" version --registry https://npm.pkg.github.com > /dev/null 2>&1; then
             echo "$package already exists in GitHub Packages; skipping publish."
           else
-            npm publish fetchclient.tgz --tag ${{ (startsWith(github.ref, 'refs/tags/v') || startsWith(github.ref, 'refs/heads/release/npm/') || github.event_name == 'workflow_dispatch') && 'latest' || 'next' }} --access public
+            npm publish fetchclient.tgz --tag ${{ steps.dist-tag.outputs.tag }} --access public
           fi
         env:
           NODE_AUTH_TOKEN: ${{secrets.GITHUB_TOKEN}}
