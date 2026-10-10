@@ -22,6 +22,9 @@ The docs site in `docs/` is part of the pnpm workspace:
 - Dev: `vp run docs:dev`
 - Build: `vp run docs:build`
 
+The [API reference](/api/) is generated from the JSDoc comments in `src/` by
+TypeDoc on every docs build, so document public APIs in the source.
+
 ## License
 
 MIT © Foundatio

@@ -260,4 +260,6 @@ export async function deleteUser(id: number) {
 For advanced use cases like connecting to multiple APIs with different
 configurations, you can create separate `FetchClientProvider` instances. Each
 provider has its own options, middleware, and cache, and
-`provider.getFetchClient()` returns clients that use them.
+`provider.getFetchClient()` returns clients that use them. See the
+[`FetchClientProvider` API reference](/api/@foundatiofx/fetchclient/classes/FetchClientProvider)
+for details.

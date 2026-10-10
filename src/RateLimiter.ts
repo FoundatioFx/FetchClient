@@ -240,7 +240,6 @@ export class RateLimiter {
   /**
    * Updates rate limit options for a request based on standard rate limit headers.
    * @param url - The request URL
-   * @param method - The HTTP method
    * @param headers - The response headers containing rate limit information
    */
   public updateFromHeadersForRequest(url: string, headers: Headers): void {

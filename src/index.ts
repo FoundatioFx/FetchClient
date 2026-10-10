@@ -1,3 +1,17 @@
+/**
+ * A typed JSON fetch client with middleware, caching, rate limiting, circuit
+ * breaking, and provider-based configuration.
+ *
+ * @example
+ * ```typescript
+ * import { FetchClient } from "@foundatiofx/fetchclient";
+ *
+ * const client = new FetchClient({ baseUrl: "https://api.example.com" });
+ * const response = await client.getJSON<{ id: number }>("/todos/1");
+ * ```
+ *
+ * @module @foundatiofx/fetchclient
+ */
 export { FetchClient } from "./FetchClient.ts";
 export type { FetchClientOptions } from "./FetchClientOptions.ts";
 export type { FetchClientResponse } from "./FetchClientResponse.ts";
@@ -5,8 +19,16 @@ export { FetchClientDeserializationError, FetchClientError } from "./FetchClient
 export { getStatusText } from "./HttpStatusText.ts";
 export { ResponsePromise } from "./ResponsePromise.ts";
 export { ProblemDetails } from "./ProblemDetails.ts";
-export { type CacheKey, type CacheTag, FetchClientCache } from "./FetchClientCache.ts";
-export type { QueryRequestOptions, RequestOptions } from "./RequestOptions.ts";
+export {
+  type CacheEntry,
+  type CacheKey,
+  type CacheTag,
+  FetchClientCache,
+} from "./FetchClientCache.ts";
+export type { GetRequestOptions, QueryRequestOptions, RequestOptions } from "./RequestOptions.ts";
+export type { Counter } from "./Counter.ts";
+export type { IObjectEvent } from "./ObjectEvent.ts";
+export type { Link, Links } from "./LinkHeader.ts";
 export type { FetchClientMiddleware } from "./FetchClientMiddleware.ts";
 export type { FetchClientContext } from "./FetchClientContext.ts";
 export {
@@ -42,6 +64,7 @@ export {
 } from "./RateLimitMiddleware.ts";
 export {
   groupByDomain as rateLimiterGroupByDomain,
+  type GroupRateLimiterOptions,
   RateLimiter,
   type RateLimiterOptions,
 } from "./RateLimiter.ts";

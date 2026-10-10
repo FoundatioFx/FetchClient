@@ -31,7 +31,7 @@ export class FetchClient {
 
   /**
    * Represents a FetchClient that handles HTTP requests using the Fetch API.
-   * @param options - The options to use for the FetchClient.
+   * @param optionsOrProvider - Client options, or the provider to inherit defaults from.
    */
   constructor(optionsOrProvider?: FetchClientOptions | FetchClientProvider) {
     if (optionsOrProvider instanceof FetchClientProvider) {

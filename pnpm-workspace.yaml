@@ -1,5 +1,6 @@
 packages:
   - docs
+  - docs/typedoc
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@1.1.0
   vite-plus: 1.1.0
@@ -11,4 +12,4 @@ peerDependencyRules:
   allowedVersions:
     vite: "*"
     # vitepress-plugin-mermaid has not declared VitePress 2 support yet.
-    vitepress-plugin-mermaid>vitepress: "2"
+    vitepress-plugin-mermaid>vitepress: ">=2.0.0-alpha.0"

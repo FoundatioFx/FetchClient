@@ -11,7 +11,7 @@ export type CacheTag = string;
 /**
  * Represents an entry in the FetchClientCache.
  */
-type CacheEntry = {
+export type CacheEntry = {
   key: CacheKey;
   tags: CacheTag[];
   lastAccess: Date;
