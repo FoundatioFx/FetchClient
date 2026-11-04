@@ -4,3 +4,25 @@ updates:
     directory: /
     schedule:
       interval: weekly
+
+  - package-ecosystem: npm
+    directories:
+      - /
+      - /docs
+      - /docs/typedoc
+    schedule:
+      interval: weekly
+    # Gives new releases a few days to be vetted before they're proposed.
+    cooldown:
+      default-days: 3
+    groups:
+      # vite-plus bundles Vitest, so @vitest/coverage-v8 must move with it.
+      vite-plus:
+        patterns:
+          - vite-plus
+          - "@voidzero-dev/vite-plus-core"
+          - "@vitest/*"
+      dependencies:
+        update-types:
+          - minor
+          - patch
