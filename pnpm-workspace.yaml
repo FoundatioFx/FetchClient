@@ -2,8 +2,10 @@ packages:
   - docs
   - docs/typedoc
 catalog:
-  vite: npm:@voidzero-dev/vite-plus-core@1.1.0
-  vite-plus: 1.1.0
+  vite: npm:@voidzero-dev/vite-plus-core@1.4.0
+  vite-plus: 1.4.0
+  # Must match the Vitest version bundled with vite-plus.
+  "@vitest/coverage-v8": 5.0.5
 overrides:
   vite@*: "catalog:"
 peerDependencyRules:
