@@ -211,18 +211,13 @@ export class MockRegistry {
     }
 
     // If target is FetchClient, use its provider
-    const provider =
-      "provider" in target && typeof target.provider !== "undefined"
-        ? (target as FetchClient).provider
-        : (target as FetchClientProvider);
+    const provider = "provider" in target ? target.provider : target;
 
     this.#target = provider;
     this.#originalFetch = provider.fetch;
 
     // Replace fetch with our mock handler
-    provider.fetch = ((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-      return this.#handleRequest(input, init);
-    }) as typeof provider.fetch;
+    provider.fetch = (input, init) => this.#handleRequest(input, init);
   }
 
   /**
@@ -328,8 +323,8 @@ export class MockRegistry {
       if (mock.url instanceof RegExp) {
         if (!mock.url.test(url)) continue;
       } else {
-        // Match if URL ends with the pattern or contains it
-        if (!url.endsWith(mock.url) && !url.includes(mock.url)) continue;
+        // Match if the URL contains the pattern
+        if (!url.includes(mock.url)) continue;
       }
 
       // Check headers if specified
@@ -379,9 +374,7 @@ export class MockRegistry {
    * ```
    */
   get fetch(): Fetch {
-    return ((input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
-      return this.#handleRequest(input, init);
-    }) as Fetch;
+    return (input, init) => this.#handleRequest(input, init);
   }
 
   /**

@@ -87,3 +87,24 @@ export type GetRequestOptions = RequestOptions & {
  * requests with different query content.
  */
 export type QueryRequestOptions = GetRequestOptions;
+
+/**
+ * Merges request options, letting `options` win while combining `headers`
+ * and `params` key by key.
+ */
+export function mergeRequestOptions<T extends RequestOptions>(
+  defaultOptions?: RequestOptions,
+  options?: T,
+): T {
+  const merged = { ...defaultOptions, ...options } as T;
+
+  if (defaultOptions?.headers || options?.headers) {
+    merged.headers = { ...defaultOptions?.headers, ...options?.headers };
+  }
+
+  if (defaultOptions?.params || options?.params) {
+    merged.params = { ...defaultOptions?.params, ...options?.params };
+  }
+
+  return merged;
+}

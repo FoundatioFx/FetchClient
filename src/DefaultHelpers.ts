@@ -16,6 +16,7 @@ let getCurrentProviderFunc: () => FetchClientProvider | null = () => null;
 
 /**
  * Gets a FetchClient instance from the current provider.
+ * @param options - Options for the client, merged over the provider's defaults.
  * @returns The FetchClient instance.
  */
 export function useFetchClient(options?: FetchClientOptions): FetchClient {
@@ -56,9 +57,9 @@ export function queryJSON<T>(
  * Sends a POST request with JSON payload using the default client and provider to the specified URL.
  *
  * @template T - The type of the response data.
- * @param {string} url - The URL to send the request to.
- * @param {object | string | FormData} [body] - The JSON payload or form data to send with the request.
- * @param {RequestOptions} [options] - Additional options for the request.
+ * @param url - The URL to send the request to.
+ * @param body - The JSON payload or form data to send with the request.
+ * @param options - Additional options for the request.
  * @returns A promise that resolves to the response with parsed JSON in `data`.
  */
 export function postJSON<T>(
@@ -73,9 +74,9 @@ export function postJSON<T>(
  * Sends a PUT request with JSON payload using the default client and provider to the specified URL.
  *
  * @template T - The type of the response data.
- * @param {string} url - The URL to send the request to.
- * @param {object | string} [body] - The JSON payload to send with the request.
- * @param {RequestOptions} [options] - Additional options for the request.
+ * @param url - The URL to send the request to.
+ * @param body - The JSON payload to send with the request.
+ * @param options - Additional options for the request.
  * @returns A promise that resolves to the response with parsed JSON in `data`.
  */
 export function putJSON<T>(
@@ -90,9 +91,9 @@ export function putJSON<T>(
  * Sends a PATCH request with JSON payload using the default client and provider to the specified URL.
  *
  * @template T - The type of the response data.
- * @param {string} url - The URL to send the request to.
- * @param {object | string} [body] - The JSON payload to send with the request.
- * @param {RequestOptions} [options] - Additional options for the request.
+ * @param url - The URL to send the request to.
+ * @param body - The JSON payload to send with the request.
+ * @param options - Additional options for the request.
  * @returns A promise that resolves to the response with parsed JSON in `data`.
  */
 export function patchJSON<T>(
@@ -107,8 +108,8 @@ export function patchJSON<T>(
  * Sends a DELETE request with JSON payload using the default client and provider to the specified URL.
  *
  * @template T - The type of the response data.
- * @param {string} url - The URL to send the request to.
- * @param {RequestOptions} [options] - Additional options for the request.
+ * @param url - The URL to send the request to.
+ * @param options - Additional options for the request.
  * @returns A promise that resolves to the response with parsed JSON in `data`.
  */
 export function deleteJSON<T>(
@@ -141,7 +142,6 @@ export function getCache(): FetchClientCache {
 /**
  * Sets the function that retrieves the current FetchClientProvider using whatever scoping mechanism is available.
  * @param getProviderFunc - The function that retrieves the current FetchClientProvider.
- * @returns void
  */
 export function setCurrentProviderFunc(getProviderFunc: () => FetchClientProvider | null) {
   getCurrentProviderFunc = getProviderFunc;

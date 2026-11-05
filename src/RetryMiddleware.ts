@@ -209,7 +209,7 @@ export class RetryMiddleware {
       baseDelay = this.#options.delay(attemptNumber, response);
     } else {
       // Default exponential backoff: 1s, 2s, 4s, 8s, ...
-      baseDelay = Math.min(1000 * Math.pow(2, attemptNumber), this.#options.backoffLimit);
+      baseDelay = Math.min(1000 * 2 ** attemptNumber, this.#options.backoffLimit);
     }
 
     // Apply jitter
@@ -242,13 +242,13 @@ export class RetryMiddleware {
 
     // Try parsing as seconds (integer)
     const seconds = parseInt(retryAfter, 10);
-    if (!isNaN(seconds)) {
+    if (!Number.isNaN(seconds)) {
       return seconds * 1000;
     }
 
     // Try parsing as HTTP-date
     const date = Date.parse(retryAfter);
-    if (!isNaN(date)) {
+    if (!Number.isNaN(date)) {
       return Math.max(0, date - Date.now());
     }
 

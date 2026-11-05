@@ -53,10 +53,12 @@ export class FetchClientCache {
 
     // Add new tag associations
     for (const tag of normalizedTags) {
-      if (!this.tagIndex.has(tag)) {
-        this.tagIndex.set(tag, new Set());
+      let hashes = this.tagIndex.get(tag);
+      if (!hashes) {
+        hashes = new Set();
+        this.tagIndex.set(tag, hashes);
       }
-      this.tagIndex.get(tag)!.add(hash);
+      hashes.add(hash);
     }
   }
 
@@ -151,7 +153,7 @@ export class FetchClientCache {
    * @returns An array of all cache tags.
    */
   public getTags(): CacheTag[] {
-    return Array.from(this.tagIndex.keys()).filter((tag) => this.tagIndex.get(tag)!.size > 0);
+    return [...this.tagIndex].filter(([, hashes]) => hashes.size > 0).map(([tag]) => tag);
   }
 
   /**
@@ -190,7 +192,7 @@ export class FetchClientCache {
   }
 
   private getHash(key: CacheKey): string {
-    if (key instanceof Array) {
+    if (Array.isArray(key)) {
       return key.join(":");
     }
 

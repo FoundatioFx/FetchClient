@@ -1,5 +1,5 @@
 import { FetchClient } from "./FetchClient.ts";
-import { Counter } from "./Counter.ts";
+import { Counter, trackLoading } from "./Counter.ts";
 import type { FetchClientMiddleware } from "./FetchClientMiddleware.ts";
 import type { ProblemDetails } from "./ProblemDetails.ts";
 import { FetchClientCache } from "./FetchClientCache.ts";
@@ -16,6 +16,7 @@ import {
   groupByDomain as circuitBreakerGroupByDomain,
 } from "./CircuitBreaker.ts";
 import { RetryMiddleware, type RetryMiddlewareOptions } from "./RetryMiddleware.ts";
+import { mergeRequestOptions } from "./RequestOptions.ts";
 
 type Fetch = typeof globalThis.fetch;
 
@@ -51,17 +52,7 @@ export class FetchClientProvider {
       fetch: this.#fetch,
     };
 
-    this.#counter.changed.on((e) => {
-      if (!e) {
-        throw new Error("Event data is required.");
-      }
-
-      if (e.value > 0 && e.previous == 0) {
-        this.#onLoading.trigger(true);
-      } else if (e.value == 0 && e.previous > 0) {
-        this.#onLoading.trigger(false);
-      }
-    });
+    trackLoading(this.#counter, this.#onLoading);
   }
 
   /**
@@ -160,36 +151,10 @@ export class FetchClientProvider {
     };
 
     if (base.defaultRequestOptions || overrides.defaultRequestOptions) {
-      mergedOptions.defaultRequestOptions = this.mergeRequestOptions(
+      mergedOptions.defaultRequestOptions = mergeRequestOptions(
         base.defaultRequestOptions,
         overrides.defaultRequestOptions,
       );
-    }
-
-    return mergedOptions;
-  }
-
-  private mergeRequestOptions(
-    defaultRequestOptions?: FetchClientOptions["defaultRequestOptions"],
-    requestOptions?: FetchClientOptions["defaultRequestOptions"],
-  ): FetchClientOptions["defaultRequestOptions"] {
-    const mergedOptions = {
-      ...defaultRequestOptions,
-      ...requestOptions,
-    };
-
-    if (defaultRequestOptions?.headers || requestOptions?.headers) {
-      mergedOptions.headers = {
-        ...defaultRequestOptions?.headers,
-        ...requestOptions?.headers,
-      };
-    }
-
-    if (defaultRequestOptions?.params || requestOptions?.params) {
-      mergedOptions.params = {
-        ...defaultRequestOptions?.params,
-        ...requestOptions?.params,
-      };
     }
 
     return mergedOptions;
@@ -250,7 +215,8 @@ export class FetchClientProvider {
   }
 
   /**
-   * Enables rate limiting for all FetchClient instances created by this provider.
+   * Enables per-domain rate limiting for all FetchClient instances created by this provider.
+   * Each domain gets its own limit.
    * @param options - The rate limiting configuration options.
    */
   public usePerDomainRateLimit(options: Omit<RateLimitMiddlewareOptions, "getGroupFunc">) {
@@ -354,5 +320,4 @@ export class FetchClientProvider {
   }
 }
 
-const provider = new FetchClientProvider();
-export const defaultInstance: FetchClientProvider = provider;
+export const defaultInstance: FetchClientProvider = new FetchClientProvider();

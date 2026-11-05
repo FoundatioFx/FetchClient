@@ -153,18 +153,16 @@ export class CircuitBreakerMiddleware {
       }
 
       // EXECUTE REQUEST
-      let isNetworkError = false;
       try {
         await next();
       } catch (error) {
         // Network errors count as failures
-        isNetworkError = true;
         this.#circuitBreaker.recordFailure(url);
         throw error;
       }
 
       // POST-RESPONSE: Record result
-      if (!isNetworkError && ctx.response) {
+      if (ctx.response) {
         if (this.#isFailure(ctx.response)) {
           this.#circuitBreaker.recordFailure(url);
         } else {

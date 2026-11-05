@@ -1,4 +1,5 @@
 import type { FetchClientResponse } from "./FetchClientResponse.ts";
+import { reviveJsonValue } from "./JsonReviver.ts";
 import type { RequestOptions } from "./RequestOptions.ts";
 
 /**
@@ -157,40 +158,11 @@ export class ResponsePromise<T = unknown> implements PromiseLike<FetchClientResp
     if (typeof data === "object") {
       const result: Record<string, unknown> = {};
       for (const [key, value] of Object.entries(data)) {
-        result[key] = this.#reviveValue(key, this.#reviveJson(value));
+        result[key] = reviveJsonValue(this, this.#options, key, this.#reviveJson(value));
       }
       return result;
     }
 
-    return this.#reviveValue("", data);
-  }
-
-  #reviveValue(key: string, value: unknown): unknown {
-    let revivedValue = value;
-
-    if (this.#options?.reviver) {
-      revivedValue = this.#options.reviver.call(this, key, revivedValue);
-    }
-
-    if (this.#options?.shouldParseDates) {
-      revivedValue = this.#tryParseDate(revivedValue);
-    }
-
-    return revivedValue;
-  }
-
-  #tryParseDate(value: unknown): unknown {
-    if (typeof value !== "string") {
-      return value;
-    }
-
-    if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
-      const date = new Date(value);
-      if (!isNaN(date.getTime())) {
-        return date;
-      }
-    }
-
-    return value;
+    return reviveJsonValue(this, this.#options, "", data);
   }
 }

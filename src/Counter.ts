@@ -4,7 +4,7 @@ import { type IObjectEvent, ObjectEvent } from "./ObjectEvent.ts";
  * Represents a counter that can be incremented and decremented.
  */
 export class Counter {
-  #count: number = 0;
+  #count = 0;
   #onChange = new ObjectEvent<{ previous: number; value: number }>();
 
   /**
@@ -38,4 +38,22 @@ export class Counter {
     this.#count--;
     this.#onChange.trigger({ previous, value: this.#count });
   }
+}
+
+/**
+ * Triggers `loading` with `true` when the counter rises from zero and with
+ * `false` when it drops back to zero.
+ */
+export function trackLoading(counter: Counter, loading: ObjectEvent<boolean>): void {
+  counter.changed.on((e) => {
+    if (!e) {
+      throw new Error("Event data is required.");
+    }
+
+    if (e.value > 0 && e.previous === 0) {
+      loading.trigger(true);
+    } else if (e.value === 0 && e.previous > 0) {
+      loading.trigger(false);
+    }
+  });
 }

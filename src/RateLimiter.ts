@@ -8,7 +8,7 @@ export interface GroupRateLimiterOptions {
   maxRequests?: number;
 
   /**
-   * Time window in milliseconds for this group.
+   * Time window in seconds for this group.
    */
   windowSeconds?: number;
 
@@ -254,7 +254,7 @@ export class RateLimiter {
    */
   public updateFromHeaders(group: string, headers: Headers): void {
     // Get existing group-specific options (not global fallback)
-    const currentOptions = this.hasGroupOptions(group) ? this.groupOptions.get(group)! : {};
+    const currentOptions = this.groupOptions.get(group) ?? {};
     const newOptions: GroupRateLimiterOptions = { ...currentOptions };
 
     // Parse IETF standard rate limit headers first, then fall back to x-ratelimit headers
@@ -300,7 +300,7 @@ export class RateLimiter {
     // Apply the parsed values
     if (limit) {
       const maxRequests = parseInt(limit, 10);
-      if (!isNaN(maxRequests)) {
+      if (!Number.isNaN(maxRequests)) {
         newOptions.maxRequests = maxRequests;
         hasChanges = true;
       }
@@ -308,14 +308,14 @@ export class RateLimiter {
 
     if (window) {
       const windowSeconds = parseInt(window, 10);
-      if (!isNaN(windowSeconds)) {
+      if (!Number.isNaN(windowSeconds)) {
         newOptions.windowSeconds = windowSeconds;
         hasChanges = true;
       }
     } else if (reset) {
       // If no window header, try to calculate from reset time
       const resetTime = parseInt(reset, 10);
-      if (!isNaN(resetTime)) {
+      if (!Number.isNaN(resetTime)) {
         const now = Math.floor(Date.now() / 1000);
         const windowSeconds = Math.max(1, resetTime - now);
         newOptions.windowSeconds = windowSeconds;
@@ -338,9 +338,10 @@ export class RateLimiter {
 }
 
 /**
- * Creates a group generator function that groups requests by domain only (no protocol).
+ * Groups requests by domain (hostname without protocol or port). Pass it as a
+ * `getGroupFunc` to rate limit each domain separately.
  * @param url - The request URL
- * @returns A string representing the domain without protocol
+ * @returns The URL's hostname, or the URL itself if it can't be parsed
  */
 export function groupByDomain(url: string): string {
   try {
@@ -407,31 +408,27 @@ export function buildRateLimitPolicyHeader(
 export function parseRateLimitHeader(headerValue: string): Partial<RateLimitInfo> | null {
   if (!headerValue) return null;
 
-  try {
-    const result: Partial<RateLimitInfo> = {};
+  const result: Partial<RateLimitInfo> = {};
 
-    // Extract policy name (quoted string at the beginning)
-    const policyMatch = headerValue.match(/^"([^"]+)"/);
-    if (policyMatch) {
-      result.policy = policyMatch[1];
-    }
-
-    // Extract remaining (r parameter)
-    const remainingMatch = headerValue.match(/r=(\d+)/);
-    if (remainingMatch) {
-      result.remaining = parseInt(remainingMatch[1], 10);
-    }
-
-    // Extract reset time (t parameter)
-    const resetMatch = headerValue.match(/t=(\d+)/);
-    if (resetMatch) {
-      result.resetSeconds = parseInt(resetMatch[1], 10);
-    }
-
-    return result;
-  } catch {
-    return null;
+  // Extract policy name (quoted string at the beginning)
+  const policyMatch = headerValue.match(/^"([^"]+)"/);
+  if (policyMatch) {
+    result.policy = policyMatch[1];
   }
+
+  // Extract remaining (r parameter)
+  const remainingMatch = headerValue.match(/r=(\d+)/);
+  if (remainingMatch) {
+    result.remaining = parseInt(remainingMatch[1], 10);
+  }
+
+  // Extract reset time (t parameter)
+  const resetMatch = headerValue.match(/t=(\d+)/);
+  if (resetMatch) {
+    result.resetSeconds = parseInt(resetMatch[1], 10);
+  }
+
+  return result;
 }
 
 /**
@@ -442,29 +439,25 @@ export function parseRateLimitHeader(headerValue: string): Partial<RateLimitInfo
 export function parseRateLimitPolicyHeader(headerValue: string): Partial<RateLimitInfo> | null {
   if (!headerValue) return null;
 
-  try {
-    const result: Partial<RateLimitInfo> = {};
+  const result: Partial<RateLimitInfo> = {};
 
-    // Extract policy name (quoted string at the beginning)
-    const policyMatch = headerValue.match(/^"([^"]+)"/);
-    if (policyMatch) {
-      result.policy = policyMatch[1];
-    }
-
-    // Extract quota/limit (q parameter)
-    const quotaMatch = headerValue.match(/q=(\d+)/);
-    if (quotaMatch) {
-      result.limit = parseInt(quotaMatch[1], 10);
-    }
-
-    // Extract window (w parameter)
-    const windowMatch = headerValue.match(/w=(\d+)/);
-    if (windowMatch) {
-      result.windowSeconds = parseInt(windowMatch[1], 10);
-    }
-
-    return result;
-  } catch {
-    return null;
+  // Extract policy name (quoted string at the beginning)
+  const policyMatch = headerValue.match(/^"([^"]+)"/);
+  if (policyMatch) {
+    result.policy = policyMatch[1];
   }
+
+  // Extract quota/limit (q parameter)
+  const quotaMatch = headerValue.match(/q=(\d+)/);
+  if (quotaMatch) {
+    result.limit = parseInt(quotaMatch[1], 10);
+  }
+
+  // Extract window (w parameter)
+  const windowMatch = headerValue.match(/w=(\d+)/);
+  if (windowMatch) {
+    result.windowSeconds = parseInt(windowMatch[1], 10);
+  }
+
+  return result;
 }

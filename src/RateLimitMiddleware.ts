@@ -1,7 +1,7 @@
 import type { FetchClientContext } from "./FetchClientContext.ts";
 import type { FetchClientMiddleware } from "./FetchClientMiddleware.ts";
-import type { FetchClientResponse } from "./FetchClientResponse.ts";
 import { ProblemDetails } from "./ProblemDetails.ts";
+import { createProblemResponse } from "./ProblemResponse.ts";
 import {
   buildRateLimitHeader,
   buildRateLimitPolicyHeader,
@@ -127,29 +127,7 @@ export class RateLimitMiddleware {
           this.errorMessage ||
           `Rate limit exceeded. Try again after ${new Date(resetTime).toISOString()}`;
 
-        context.response = {
-          url: context.request.url,
-          status: 429,
-          statusText: "Too Many Requests",
-          body: null,
-          bodyUsed: true,
-          ok: false,
-          headers: headers,
-          redirected: false,
-          type: "basic",
-          problem: problem,
-          data: null,
-          meta: { links: {} },
-          json: () => Promise.resolve(problem),
-          text: () => Promise.resolve(JSON.stringify(problem)),
-          arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          bytes: () => Promise.resolve(new Uint8Array()),
-          blob: () => Promise.resolve(new Blob()),
-          formData: () => Promise.resolve(new FormData()),
-          clone: () => {
-            throw new Error("Not implemented");
-          },
-        } as FetchClientResponse<unknown>;
+        context.response = createProblemResponse(problem, context.request.url, headers);
 
         return;
       }

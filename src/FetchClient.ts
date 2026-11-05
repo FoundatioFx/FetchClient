@@ -1,5 +1,10 @@
-import { Counter } from "./Counter.ts";
-import type { GetRequestOptions, QueryRequestOptions, RequestOptions } from "./RequestOptions.ts";
+import { Counter, trackLoading } from "./Counter.ts";
+import {
+  type GetRequestOptions,
+  mergeRequestOptions,
+  type QueryRequestOptions,
+  type RequestOptions,
+} from "./RequestOptions.ts";
 import { ProblemDetails } from "./ProblemDetails.ts";
 import type { FetchClientResponse } from "./FetchClientResponse.ts";
 import type { FetchClientMiddleware } from "./FetchClientMiddleware.ts";
@@ -11,12 +16,15 @@ import { getCurrentProvider } from "./DefaultHelpers.ts";
 import type { FetchClientOptions } from "./FetchClientOptions.ts";
 import { type IObjectEvent, ObjectEvent } from "./ObjectEvent.ts";
 import { ResponsePromise } from "./ResponsePromise.ts";
+import { createProblemResponse } from "./ProblemResponse.ts";
+import { reviveJsonValue } from "./JsonReviver.ts";
 import { FetchClientDeserializationError, FetchClientError } from "./FetchClientError.ts";
 import { getStatusText } from "./HttpStatusText.ts";
 
 type Fetch = typeof globalThis.fetch;
-type RequestInitWithObjectBody = Omit<RequestInit, "body"> & {
+type RequestInitWithObjectBody = Omit<RequestInit, "body" | "headers"> & {
   body?: BodyInit | object | null;
+  headers?: Record<string, string>;
 };
 
 /**
@@ -43,7 +51,7 @@ export class FetchClient {
         this.#options = {
           ...providerOptions,
           ...optionsOrProvider,
-          defaultRequestOptions: this.mergeRequestOptions(
+          defaultRequestOptions: mergeRequestOptions(
             providerOptions.defaultRequestOptions,
             optionsOrProvider.defaultRequestOptions,
           ),
@@ -51,17 +59,7 @@ export class FetchClient {
       }
     }
 
-    this.#counter.changed.on((e) => {
-      if (!e) {
-        throw new Error("Event data is required.");
-      }
-
-      if (e.value > 0 && e.previous == 0) {
-        this.#onLoading.trigger(true);
-      } else if (e.value == 0 && e.previous > 0) {
-        this.#onLoading.trigger(false);
-      }
-    });
+    trackLoading(this.#counter, this.#onLoading);
   }
 
   /**
@@ -101,7 +99,7 @@ export class FetchClient {
 
   /**
    * Gets a value indicating whether the client is currently loading.
-   * @returns {boolean} A boolean value indicating whether the client is loading.
+   * @returns A boolean value indicating whether the client is loading.
    */
   public get isLoading(): boolean {
     return this.requestCount > 0;
@@ -232,9 +230,9 @@ export class FetchClient {
    * The response will have the parsed JSON in `response.data`.
    *
    * @template T - The type of the response data.
-   * @param {string} url - The URL to send the request to.
-   * @param {object | string | FormData} [body] - The JSON payload or form data to send with the request.
-   * @param {RequestOptions} [options] - Additional options for the request.
+   * @param url - The URL to send the request to.
+   * @param body - The JSON payload or form data to send with the request.
+   * @param options - Additional options for the request.
    * @returns A promise that resolves to the response with parsed JSON in `data`.
    */
   async postJSON<T>(
@@ -277,9 +275,9 @@ export class FetchClient {
    * The response will have the parsed JSON in `response.data`.
    *
    * @template T - The type of the response data.
-   * @param {string} url - The URL to send the request to.
-   * @param {object | string} [body] - The JSON payload to send with the request.
-   * @param {RequestOptions} [options] - Additional options for the request.
+   * @param url - The URL to send the request to.
+   * @param body - The JSON payload to send with the request.
+   * @param options - Additional options for the request.
    * @returns A promise that resolves to the response with parsed JSON in `data`.
    */
   async putJSON<T>(
@@ -322,9 +320,9 @@ export class FetchClient {
    * The response will have the parsed JSON in `response.data`.
    *
    * @template T - The type of the response data.
-   * @param {string} url - The URL to send the request to.
-   * @param {object | string} [body] - The JSON payload to send with the request.
-   * @param {RequestOptions} [options] - Additional options for the request.
+   * @param url - The URL to send the request to.
+   * @param body - The JSON payload to send with the request.
+   * @param options - Additional options for the request.
    * @returns A promise that resolves to the response with parsed JSON in `data`.
    */
   async patchJSON<T>(
@@ -363,8 +361,8 @@ export class FetchClient {
    * The response will have the parsed JSON in `response.data`.
    *
    * @template T - The type of the response data.
-   * @param {string} url - The URL to send the request to.
-   * @param {RequestOptions} [options] - Additional options for the request.
+   * @param url - The URL to send the request to.
+   * @param options - Additional options for the request.
    * @returns A promise that resolves to the response with parsed JSON in `data`.
    */
   async deleteJSON<T>(url: string, options?: RequestOptions): Promise<FetchClientResponse<T>> {
@@ -395,16 +393,10 @@ export class FetchClient {
   }
 
   private async validate(data: unknown, options?: RequestOptions): Promise<ProblemDetails | null> {
-    if (typeof data !== "object" || (options && options.shouldValidateModel === false)) return null;
+    if (typeof data !== "object" || options?.shouldValidateModel === false) return null;
 
-    if (this.options?.modelValidator === undefined) {
-      return null;
-    }
-
-    const problem = await this.options.modelValidator(data as object);
-    if (!problem) return null;
-
-    return problem;
+    const problem = await this.options.modelValidator?.(data as object);
+    return problem ?? null;
   }
 
   private async fetchInternal<T>(
@@ -415,13 +407,11 @@ export class FetchClient {
     const { builtUrl, absoluteUrl } = this.buildUrl(url, options);
 
     if (this.isJsonLikeObject(init?.body)) {
-      const problem = await this.validate(init?.body, options);
+      const problem = await this.validate(init.body, options);
       if (problem) {
-        return this.problemToResponse<T>(problem, url);
+        return createProblemResponse<T>(problem, url);
       }
-    }
 
-    if (this.isJsonLikeObject(init?.body)) {
       init.body = JSON.stringify(init.body);
     }
 
@@ -429,24 +419,22 @@ export class FetchClient {
     if (accessToken !== null) {
       init = {
         ...init,
-        // buildRequestInit always produces a plain headers object.
-        // oxlint-disable-next-line typescript/no-misused-spread
         headers: { ...init?.headers, Authorization: `Bearer ${accessToken}` },
       };
     }
 
-    if (options?.signal) {
+    if (options.signal) {
       init = { ...init, signal: options.signal };
     }
 
-    if (options?.timeout) {
+    if (options.timeout) {
       let signal = AbortSignal.timeout(options.timeout);
 
       if (init?.signal) {
         signal = this.mergeAbortSignals(signal, init.signal);
       }
 
-      init = { ...init, signal: signal };
+      init = { ...init, signal };
     }
 
     const fetchMiddleware = async (ctx: FetchClientContext, next: () => Promise<void>) => {
@@ -487,13 +475,10 @@ export class FetchClient {
         }
       } catch (error) {
         if (error instanceof Error && error.name === "TimeoutError") {
-          ctx.response = this.problemToResponse(
-            Object.assign(new ProblemDetails(), {
-              status: 408,
-              title: "Request Timeout",
-            }),
+          ctx.response = createProblemResponse<T>(
+            Object.assign(new ProblemDetails(), { status: 408, title: "Request Timeout" }),
             ctx.request.url,
-          ) as FetchClientResponse<T>;
+          );
         } else {
           throw error;
         }
@@ -507,8 +492,7 @@ export class FetchClient {
     this.#counter.increment();
     this.#provider.counter.increment();
 
-    let request: Request | null = null;
-
+    let request: Request;
     try {
       request = new Request(builtUrl, init as RequestInit);
     } catch {
@@ -518,7 +502,7 @@ export class FetchClient {
 
     const context: FetchClientContext = {
       options,
-      request: request!,
+      request,
       response: null,
       meta: {},
     };
@@ -583,15 +567,13 @@ export class FetchClient {
     options: RequestOptions,
     signal: AbortSignal,
   ): Promise<FetchClientResponse<T>> {
-    let data = null;
+    let data: unknown = null;
     let bodyText = "";
     try {
       bodyText = await response.text();
       if (bodyText) {
         if (options.reviver || options.shouldParseDates) {
-          data = JSON.parse(bodyText, (key, value) => {
-            return this.reviveJsonValue(options, key, value);
-          });
+          data = JSON.parse(bodyText, (key, value) => reviveJsonValue(this, options, key, value));
         } else {
           data = JSON.parse(bodyText);
         }
@@ -638,38 +620,9 @@ export class FetchClient {
     }
 
     jsonResponse.problem = new ProblemDetails();
-    jsonResponse.data = data;
+    jsonResponse.data = data as T;
 
     return jsonResponse;
-  }
-
-  private reviveJsonValue(options: RequestOptions, key: string, value: unknown): unknown {
-    let revivedValued = value;
-
-    if (options.reviver) {
-      revivedValued = options.reviver.call(this, key, revivedValued);
-    }
-
-    if (options.shouldParseDates) {
-      revivedValued = this.tryParseDate(key, revivedValued);
-    }
-
-    return revivedValued;
-  }
-
-  private tryParseDate(_key: string, value: unknown): unknown {
-    if (typeof value !== "string") {
-      return value;
-    }
-
-    if (/^\d{4}-\d{2}-\d{2}/.test(value)) {
-      const date = new Date(value);
-      if (!isNaN(date.getTime())) {
-        return date;
-      }
-    }
-
-    return value;
   }
 
   private buildRequestInit(
@@ -733,75 +686,8 @@ export class FetchClient {
     };
   }
 
-  private mergeWithDefaultRequestOptions(options?: GetRequestOptions): GetRequestOptions;
-  private mergeWithDefaultRequestOptions(options?: RequestOptions): RequestOptions;
-  private mergeWithDefaultRequestOptions(
-    options?: RequestOptions | GetRequestOptions,
-  ): RequestOptions | GetRequestOptions {
-    return this.mergeRequestOptions(this.options.defaultRequestOptions, options);
-  }
-
-  private mergeRequestOptions(
-    defaultRequestOptions?: RequestOptions,
-    options?: GetRequestOptions,
-  ): GetRequestOptions;
-  private mergeRequestOptions(
-    defaultRequestOptions?: RequestOptions,
-    options?: RequestOptions,
-  ): RequestOptions;
-  private mergeRequestOptions(
-    defaultRequestOptions?: RequestOptions,
-    options?: RequestOptions | GetRequestOptions,
-  ): RequestOptions | GetRequestOptions {
-    const mergedOptions: RequestOptions | GetRequestOptions = {
-      ...defaultRequestOptions,
-      ...options,
-    };
-
-    if (defaultRequestOptions?.headers || options?.headers) {
-      mergedOptions.headers = {
-        ...defaultRequestOptions?.headers,
-        ...options?.headers,
-      };
-    }
-
-    if (defaultRequestOptions?.params || options?.params) {
-      mergedOptions.params = {
-        ...defaultRequestOptions?.params,
-        ...options?.params,
-      };
-    }
-
-    return mergedOptions;
-  }
-
-  private problemToResponse<T>(problem: ProblemDetails, url: string): FetchClientResponse<T> {
-    const headers = new Headers();
-    headers.set("Content-Type", "application/problem+json");
-
-    return {
-      url,
-      status: problem.status ?? 422,
-      statusText: problem.title ?? getStatusText(problem.status ?? 422),
-      body: null,
-      bodyUsed: true,
-      ok: false,
-      headers: headers,
-      redirected: false,
-      problem: problem,
-      data: null,
-      meta: { links: {} },
-      type: "basic",
-      json: () => new Promise((resolve) => resolve(problem)),
-      text: () => new Promise((resolve) => resolve(JSON.stringify(problem))),
-      arrayBuffer: () => new Promise((resolve) => resolve(new ArrayBuffer(0))),
-      bytes: () => new Promise((resolve) => resolve(new Uint8Array())),
-      blob: () => new Promise((resolve) => resolve(new Blob())),
-      formData: () => new Promise((resolve) => resolve(new FormData())),
-      clone: () => {
-        throw new Error("Not implemented");
-      },
-    };
+  private mergeWithDefaultRequestOptions<T extends RequestOptions>(options?: T): T {
+    return mergeRequestOptions(this.options.defaultRequestOptions, options);
   }
 
   private buildUrl(
@@ -810,7 +696,7 @@ export class FetchClient {
   ): { builtUrl: string; absoluteUrl: string } {
     let builtUrl = url;
 
-    if (!builtUrl.startsWith("http") && this.options?.baseUrl) {
+    if (!builtUrl.startsWith("http") && this.options.baseUrl) {
       if (this.options.baseUrl.endsWith("/") || builtUrl.startsWith("/")) {
         builtUrl = this.options.baseUrl + builtUrl;
       } else {
@@ -820,25 +706,13 @@ export class FetchClient {
 
     const isAbsoluteUrl = builtUrl.startsWith("http");
 
-    let parsed: URL | undefined = undefined;
-    if (isAbsoluteUrl) {
-      parsed = new URL(builtUrl);
-    } else if (globalThis.location?.origin && globalThis.location?.origin.startsWith("http")) {
-      if (builtUrl.startsWith("/")) {
-        parsed = new URL(builtUrl, globalThis.location.origin);
-      } else {
-        parsed = new URL(builtUrl, globalThis.location.origin + "/");
-      }
-    } else {
-      if (builtUrl.startsWith("/")) {
-        parsed = new URL(builtUrl, "http://localhost");
-      } else {
-        parsed = new URL(builtUrl, "http://localhost/");
-      }
-    }
+    const origin = globalThis.location?.origin;
+    const parsed = isAbsoluteUrl
+      ? new URL(builtUrl)
+      : new URL(builtUrl, origin?.startsWith("http") ? origin : "http://localhost");
 
     if (options?.params) {
-      for (const [key, value] of Object.entries(options?.params)) {
+      for (const [key, value] of Object.entries(options.params)) {
         if (value !== undefined && value !== null && !parsed.searchParams.has(key)) {
           parsed.searchParams.set(key, value as string);
         }
@@ -864,7 +738,7 @@ export class FetchClient {
       return;
     }
 
-    if (options?.expectedStatusCodes && options.expectedStatusCodes.includes(response.status)) {
+    if (options?.expectedStatusCodes?.includes(response.status)) {
       return;
     }
 
