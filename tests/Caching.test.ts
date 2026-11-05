@@ -1,4 +1,4 @@
-import { assert, expect, test } from "vite-plus/test";
+import { afterEach, assert, expect, test, vi } from "vite-plus/test";
 import { FetchClientProvider } from "../src/FetchClientProvider.ts";
 import { MockRegistry } from "../src/mocks/MockRegistry.ts";
 
@@ -9,11 +9,12 @@ type Todo = {
   completed: boolean;
 };
 
-function delay(time: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, time));
-}
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 test("can getJSON with caching", async () => {
+  vi.useFakeTimers();
   const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
@@ -34,11 +35,12 @@ test("can getJSON with caching", async () => {
 
   expect(r.ok).toBe(true);
   expect(r.status).toBe(200);
-  assert(r.data);
-  expect(r.data!.userId).toBe(1);
-  expect(r.data!.id).toBe(1);
-  expect(r.data!.title).toBe("A random title");
-  expect(r.data!.completed).toBe(false);
+  expect(r.data).toEqual({
+    userId: 1,
+    id: 1,
+    title: "A random title",
+    completed: false,
+  });
   expect(provider.isLoading).toBe(false);
   expect(mocks.history.all.length).toBe(1);
   expect(provider.cache.has(["todos", "1"])).toBe(true);
@@ -68,7 +70,7 @@ test("can getJSON with caching", async () => {
   expect(provider.cache.has(["todos", "1"])).toBe(true);
 
   // Wait for cache to expire
-  await delay(100);
+  vi.advanceTimersByTime(100);
 
   r = await client.getJSON<Todo>("https://jsonplaceholder.typicode.com/todos/1", {
     expectedStatusCodes: [404],
@@ -161,6 +163,7 @@ test("can getJSON with cache tags", async () => {
 });
 
 test("cache tags are cleaned up on expiration", async () => {
+  vi.useFakeTimers();
   const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
@@ -185,7 +188,7 @@ test("cache tags are cleaned up on expiration", async () => {
   expect(tags).toContain("expiring-tag");
 
   // Wait for expiration
-  await delay(50);
+  vi.advanceTimersByTime(50);
 
   // Access the cache to trigger expiration cleanup
   const result = provider.cache.get(["todos", "1"]);
@@ -193,7 +196,7 @@ test("cache tags are cleaned up on expiration", async () => {
 
   // Tag should be cleaned up
   tags = provider.cache.getTags();
-  expect(tags.includes("expiring-tag")).toBe(false);
+  expect(tags).not.toContain("expiring-tag");
 });
 
 test("cache tags are cleaned up on delete", async () => {
@@ -224,7 +227,7 @@ test("cache tags are cleaned up on delete", async () => {
 
   // Tag should be cleaned up
   tags = provider.cache.getTags();
-  expect(tags.includes("delete-tag")).toBe(false);
+  expect(tags).not.toContain("delete-tag");
 });
 
 test("cache tags work with deleteAll prefix", async () => {
@@ -263,7 +266,7 @@ test("cache tags work with deleteAll prefix", async () => {
 
   // Users tag should be cleaned up, posts tag should remain
   tags = provider.cache.getTags();
-  expect(tags.includes("users")).toBe(false);
+  expect(tags).not.toContain("users");
   expect(tags).toContain("posts");
 });
 

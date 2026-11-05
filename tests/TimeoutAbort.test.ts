@@ -1,10 +1,20 @@
-import { assert, expect, test } from "vite-plus/test";
+import { afterEach, beforeEach, expect, test, vi } from "vite-plus/test";
 import { FetchClient } from "../src/FetchClient.ts";
 import { FetchClientProvider } from "../src/FetchClientProvider.ts";
 import { MockRegistry } from "../src/mocks/MockRegistry.ts";
 
+let mocks: MockRegistry;
+
+beforeEach(() => {
+  mocks = new MockRegistry();
+});
+
+afterEach(() => {
+  mocks.restore();
+  vi.useRealTimers();
+});
+
 test("timeout returns 408 response via FetchClient", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/api/slow").timeout();
 
   const client = new FetchClient();
@@ -20,24 +30,18 @@ test("timeout returns 408 response via FetchClient", async () => {
 });
 
 test("timeout throws DOMException when using fetch directly", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/api/slow").timeout();
 
   const provider = new FetchClientProvider();
   mocks.install(provider);
 
   // Using fetch directly throws the TimeoutError
-  try {
-    await provider.fetch!("https://example.com/api/slow");
-    throw new Error("Should have thrown");
-  } catch (e) {
-    assert(e instanceof DOMException);
-    expect(e.name).toBe("TimeoutError");
-  }
+  const request = provider.fetch!("https://example.com/api/slow");
+  await expect(request).rejects.toBeInstanceOf(DOMException);
+  await expect(request).rejects.toHaveProperty("name", "TimeoutError");
 });
 
 test("MockRegistry handles pre-aborted signal directly", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/products/1").reply(200, { id: 1 });
 
   const provider = new FetchClientProvider();
@@ -47,21 +51,15 @@ test("MockRegistry handles pre-aborted signal directly", async () => {
   const controller = new AbortController();
   controller.abort("Signal was aborted");
 
-  let gotError = false;
-  try {
-    await provider.fetch!("https://example.com/products/1", {
+  await expect(
+    provider.fetch!("https://example.com/products/1", {
       signal: controller.signal,
-    });
-  } catch (error) {
-    expect(error).toBe("Signal was aborted");
-    gotError = true;
-  }
-
-  expect(gotError).toBe(true);
+    }),
+  ).rejects.toBe("Signal was aborted");
 });
 
 test("abort signal cancels delayed response via fetch directly", async () => {
-  const mocks = new MockRegistry();
+  vi.useFakeTimers();
   mocks.onGet("/products/1").delay(500).reply(200, { id: 1 });
 
   const provider = new FetchClientProvider();
@@ -72,34 +70,33 @@ test("abort signal cancels delayed response via fetch directly", async () => {
     controller.abort("Signal was aborted");
   }, 50);
 
-  let gotError = false;
-  const start = Date.now();
-  try {
-    await provider.fetch!("https://example.com/products/1", {
+  const assertion = expect(
+    provider.fetch!("https://example.com/products/1", {
       signal: controller.signal,
-    });
-  } catch (error) {
-    expect(error).toBe("Signal was aborted");
-    gotError = true;
-  }
-  const elapsed = Date.now() - start;
+    }),
+  ).rejects.toBe("Signal was aborted");
 
-  expect(gotError).toBe(true);
-  // Should abort after ~50ms, not wait for the full 500ms delay
-  expect(elapsed, `Expected abort after ~50ms, but took ${elapsed}ms`).toBeLessThan(200);
+  await vi.advanceTimersByTimeAsync(50);
+  await assertion;
+  // The 500ms delay timer was cleared rather than left to run out
+  expect(vi.getTimerCount()).toBe(0);
 });
 
 test("delayed response returns after delay", async () => {
-  const mocks = new MockRegistry();
+  vi.useFakeTimers();
   mocks.onGet("/api/delayed").delay(100).reply(200, { delayed: true });
 
   const client = new FetchClient();
   mocks.install(client);
 
-  const start = Date.now();
-  const response = await client.getJSON("https://example.com/api/delayed");
-  const elapsed = Date.now() - start;
+  const request = client.getJSON("https://example.com/api/delayed");
+
+  await vi.advanceTimersByTimeAsync(99);
+  expect(client.isLoading).toBe(true);
+
+  await vi.advanceTimersByTimeAsync(1);
+  const response = await request;
 
   expect(response.data).toEqual({ delayed: true });
-  expect(elapsed, `Expected delay of at least 100ms, got ${elapsed}ms`).toBeGreaterThanOrEqual(100);
+  expect(client.isLoading).toBe(false);
 });

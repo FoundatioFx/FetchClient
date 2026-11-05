@@ -40,24 +40,18 @@ test("can getJSON with baseUrl from real API", async () => {
 test("can abort getJSON with real API", async () => {
   const provider = new FetchClientProvider();
   const client = provider.getFetchClient();
-  let gotError = false;
 
-  try {
-    const controller = new AbortController();
-    setTimeout(() => {
-      controller.abort("Signal was aborted");
-    }, 100);
+  const controller = new AbortController();
+  setTimeout(() => {
+    controller.abort("Signal was aborted");
+  }, 100);
 
-    await client.getJSON("https://dummyjson.com/products/1?delay=2000", {
+  await expect(
+    client.getJSON("https://dummyjson.com/products/1?delay=2000", {
       timeout: 500,
       signal: controller.signal,
-    });
-  } catch (error) {
-    expect(error).toBe("Signal was aborted");
-    gotError = true;
-  }
-
-  expect(gotError).toBe(true);
+    }),
+  ).rejects.toBe("Signal was aborted");
 
   // can use expectedStatusCodes to not throw an error
   const response = await client.getJSON("https://dummyjson.com/products/1?delay=2000", {
@@ -75,20 +69,14 @@ test("can getJSON with timeout from real API", async () => {
   const provider = new FetchClientProvider();
 
   const client = provider.getFetchClient();
-  let gotError = false;
 
-  try {
-    // timeout is set to 100ms, but the request takes 2000ms
-    // so it should throw a timeout error
-    await client.getJSON("https://dummyjson.com/products/1?delay=2000", {
+  // timeout is set to 100ms, but the request takes 2000ms
+  // so it should throw a timeout error
+  await expect(
+    client.getJSON("https://dummyjson.com/products/1?delay=2000", {
       timeout: 100,
-    });
-  } catch (error) {
-    expect((error as Response).status).toBe(408);
-    gotError = true;
-  }
-
-  expect(gotError).toBe(true);
+    }),
+  ).rejects.toHaveProperty("status", 408);
 
   // can use expectedStatusCodes to not throw an error
   const response = await client.getJSON("https://dummyjson.com/products/1?delay=2000", {
@@ -122,8 +110,7 @@ test("can use useFetchClient function", async () => {
     },
     middleware: [
       async (ctx, next) => {
-        expect(ctx).toBeTruthy();
-        expect(ctx.request).toBeTruthy();
+        expect(ctx.request).toBeInstanceOf(Request);
         optionsCalled = true;
         await next();
         assert(ctx.response);
@@ -131,8 +118,7 @@ test("can use useFetchClient function", async () => {
     ],
   })
     .use(async (ctx, next) => {
-      expect(ctx).toBeTruthy();
-      expect(ctx.request).toBeTruthy();
+      expect(ctx.request).toBeInstanceOf(Request);
       called = true;
       await next();
       assert(ctx.response);
@@ -183,7 +169,8 @@ test("can post FormData multipart", async () => {
   expect(form.count).toBe("42");
   expect(files.file).toBe("Hello Multipart");
   // binary may be base64 or raw; just ensure it's present
-  expect(files.binary && typeof files.binary === "string").toBeTruthy();
+  expect(files.binary).toBeTypeOf("string");
+  expect(files.binary).not.toBe("");
 });
 
 test("can use per-domain rate limiting with auto-update from headers", async () => {

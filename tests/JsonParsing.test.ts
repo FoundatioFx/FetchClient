@@ -1,4 +1,4 @@
-import { assert, expect, test } from "vite-plus/test";
+import { afterEach, assert, beforeEach, expect, test } from "vite-plus/test";
 import { FetchClient } from "../src/FetchClient.ts";
 import { MockRegistry } from "../src/mocks/MockRegistry.ts";
 import { z, type ZodTypeAny } from "zod";
@@ -13,8 +13,17 @@ const TodoSchema = z.object({
 
 type Todo = z.infer<typeof TodoSchema>;
 
+let mocks: MockRegistry;
+
+beforeEach(() => {
+  mocks = new MockRegistry();
+});
+
+afterEach(() => {
+  mocks.restore();
+});
+
 test("can parse dates", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
     id: 1,
@@ -30,7 +39,7 @@ test("can parse dates", async () => {
 
   expect(res.status).toBe(200);
   assert(res.data);
-  expect(res.data.completedTime instanceof Date).toBe(false);
+  expect(res.data.completedTime).toBe("2021-01-01T00:00:00.000Z");
 
   res = await client.getJSON<Todo>(`https://jsonplaceholder.typicode.com/todos/1`, {
     shouldParseDates: true,
@@ -42,7 +51,6 @@ test("can parse dates", async () => {
 });
 
 test("can use reviver", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
     id: 1,
@@ -58,7 +66,7 @@ test("can use reviver", async () => {
 
   expect(res.status).toBe(200);
   assert(res.data);
-  expect(res.data.completedTime instanceof Date).toBe(false);
+  expect(res.data.completedTime).toBe("2021-01-01T00:00:00.000Z");
 
   res = await client.getJSON<Todo>(`https://jsonplaceholder.typicode.com/todos/1`, {
     reviver: (key: string, value: unknown) => {
@@ -75,7 +83,6 @@ test("can use reviver", async () => {
 });
 
 test("can parse dates and use reviver together", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
     id: 1,
@@ -92,7 +99,7 @@ test("can parse dates and use reviver together", async () => {
   expect(res.status).toBe(200);
   assert(res.data);
   expect(res.data.title).toBe("A random title");
-  expect(res.data.completedTime instanceof Date).toBe(false);
+  expect(res.data.completedTime).toBe("2021-01-01T00:00:00.000Z");
 
   res = await client.getJSON<Todo>(`https://jsonplaceholder.typicode.com/todos/1`, {
     shouldParseDates: true,
@@ -111,7 +118,6 @@ test("can parse dates and use reviver together", async () => {
 });
 
 test("can getJSON with zod schema via middleware", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
     id: 1,
@@ -144,13 +150,12 @@ test("can getJSON with zod schema via middleware", async () => {
 
   expect(res.status).toBe(200);
   assert(res.data);
-  expect(TodoSchema.parse(res.data)).toBeTruthy();
+  expect(TodoSchema.safeParse(res.data).success).toBe(true);
   // zod coerce.date() should convert string to Date
   expect(res.data.completedTime).toBeInstanceOf(Date);
 });
 
 test("handles null response body", async () => {
-  const mocks = new MockRegistry();
   mocks.onDelete("/items/1").reply(204);
 
   const client = new FetchClient();
@@ -164,7 +169,6 @@ test("handles null response body", async () => {
 });
 
 test("handles array response", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/items").reply(200, [
     { id: 1, name: "Item 1" },
     { id: 2, name: "Item 2" },
@@ -186,7 +190,6 @@ test("handles array response", async () => {
 });
 
 test("handles nested objects", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/user/profile").reply(200, {
     id: 1,
     name: "John",

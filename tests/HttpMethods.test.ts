@@ -1,4 +1,4 @@
-import { assert, expect, test } from "vite-plus/test";
+import { afterEach, assert, beforeEach, expect, onTestFinished, test } from "vite-plus/test";
 import { FetchClient } from "../src/FetchClient.ts";
 import { FetchClientProvider } from "../src/FetchClientProvider.ts";
 import { MockRegistry } from "../src/mocks/MockRegistry.ts";
@@ -10,8 +10,17 @@ type Todo = {
   completed: boolean;
 };
 
+let mocks: MockRegistry;
+
+beforeEach(() => {
+  mocks = new MockRegistry();
+});
+
+afterEach(() => {
+  mocks.restore();
+});
+
 test("can getJSON with client middleware", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
     id: 1,
@@ -24,11 +33,10 @@ test("can getJSON with client middleware", async () => {
 
   let called = false;
   provider.useMiddleware(async (ctx, next) => {
-    expect(ctx).toBeTruthy();
-    expect(ctx.request).toBeTruthy();
+    expect(ctx.request).toBeInstanceOf(Request);
     assert(ctx.options.expectedStatusCodes);
     expect(ctx.options.expectedStatusCodes.length).toBeGreaterThan(0);
-    expect(ctx.response).toBeFalsy();
+    expect(ctx.response).toBeNull();
     expect(provider.isLoading).toBe(true);
     called = true;
     await next();
@@ -42,17 +50,17 @@ test("can getJSON with client middleware", async () => {
 
   expect(r.ok).toBe(true);
   expect(r.status).toBe(200);
-  assert(r.data);
   expect(called).toBe(true);
-  expect(r.data!.userId).toBe(1);
-  expect(r.data!.id).toBe(1);
-  expect(r.data!.title).toBe("A random title");
-  expect(r.data!.completed).toBe(false);
+  expect(r.data).toEqual({
+    userId: 1,
+    id: 1,
+    title: "A random title",
+    completed: false,
+  });
   expect(provider.isLoading).toBe(false);
 });
 
 test("can queryJSON with client middleware", async () => {
-  const mocks = new MockRegistry();
   mocks.onQuery("/todos/search").reply(200, [{ id: 1, title: "Match" }]);
 
   const client = new FetchClient();
@@ -79,7 +87,6 @@ test("can queryJSON with client middleware", async () => {
 });
 
 test("query sends application/x-www-form-urlencoded content", async () => {
-  const mocks = new MockRegistry();
   mocks.onQuery("/feed").reply(200, []);
 
   const client = new FetchClient();
@@ -98,7 +105,6 @@ test("query sends application/x-www-form-urlencoded content", async () => {
 });
 
 test("query sends application/sql content", async () => {
-  const mocks = new MockRegistry();
   mocks.onQuery("/rfc-index.xml").reply(200, []);
 
   const client = new FetchClient();
@@ -115,7 +121,6 @@ test("query sends application/sql content", async () => {
 });
 
 test("can postJSON with client middleware", async () => {
-  const mocks = new MockRegistry();
   mocks.onPost("/todos/1").reply(200, {
     userId: 1,
     id: 1,
@@ -128,10 +133,9 @@ test("can postJSON with client middleware", async () => {
 
   let called = false;
   client.use(async (ctx, next) => {
-    expect(ctx).toBeTruthy();
-    expect(ctx.request).toBeTruthy();
-    expect(ctx.options).toBeTruthy();
-    expect(ctx.response).toBeFalsy();
+    expect(ctx.request).toBeInstanceOf(Request);
+    expect(ctx.options).toBeInstanceOf(Object);
+    expect(ctx.response).toBeNull();
     called = true;
     await next();
     assert(ctx.response);
@@ -140,16 +144,16 @@ test("can postJSON with client middleware", async () => {
   const r = await client.postJSON<Todo>("https://jsonplaceholder.typicode.com/todos/1");
   expect(r.ok).toBe(true);
   expect(r.status).toBe(200);
-  assert(r.data);
   expect(called).toBe(true);
-  expect(r.data!.userId).toBe(1);
-  expect(r.data!.id).toBe(1);
-  expect(r.data!.title).toBe("A random title");
-  expect(r.data!.completed).toBe(false);
+  expect(r.data).toEqual({
+    userId: 1,
+    id: 1,
+    title: "A random title",
+    completed: false,
+  });
 });
 
 test("can putJSON with client middleware", async () => {
-  const mocks = new MockRegistry();
   mocks.onPut("/todos/1").reply(200, {
     userId: 1,
     id: 1,
@@ -162,9 +166,8 @@ test("can putJSON with client middleware", async () => {
 
   let called = false;
   client.use(async (ctx, next) => {
-    expect(ctx).toBeTruthy();
-    expect(ctx.request).toBeTruthy();
-    expect(ctx.response).toBeFalsy();
+    expect(ctx.request).toBeInstanceOf(Request);
+    expect(ctx.response).toBeNull();
     called = true;
     await next();
     assert(ctx.response);
@@ -173,16 +176,16 @@ test("can putJSON with client middleware", async () => {
   const r = await client.putJSON<Todo>("https://jsonplaceholder.typicode.com/todos/1");
   expect(r.ok).toBe(true);
   expect(r.status).toBe(200);
-  assert(r.data);
   expect(called).toBe(true);
-  expect(r.data!.userId).toBe(1);
-  expect(r.data!.id).toBe(1);
-  expect(r.data!.title).toBe("A random title");
-  expect(r.data!.completed).toBe(false);
+  expect(r.data).toEqual({
+    userId: 1,
+    id: 1,
+    title: "A random title",
+    completed: false,
+  });
 });
 
 test("can patchJSON with client middleware", async () => {
-  const mocks = new MockRegistry();
   mocks.onPatch("/todos/1").reply(200, {
     userId: 1,
     id: 1,
@@ -195,9 +198,8 @@ test("can patchJSON with client middleware", async () => {
 
   let called = false;
   client.use(async (ctx, next) => {
-    expect(ctx).toBeTruthy();
-    expect(ctx.request).toBeTruthy();
-    expect(ctx.response).toBeFalsy();
+    expect(ctx.request).toBeInstanceOf(Request);
+    expect(ctx.response).toBeNull();
     called = true;
     await next();
     assert(ctx.response);
@@ -210,12 +212,11 @@ test("can patchJSON with client middleware", async () => {
   expect(r.status).toBe(200);
   assert(r.data);
   expect(called).toBe(true);
-  expect(r.data!.title).toBe("Updated title");
-  expect(r.data!.completed).toBe(true);
+  expect(r.data.title).toBe("Updated title");
+  expect(r.data.completed).toBe(true);
 });
 
 test("can deleteJSON with client middleware", async () => {
-  const mocks = new MockRegistry();
   mocks.onDelete("/todos/1").reply(200, {
     userId: 1,
     id: 1,
@@ -228,9 +229,8 @@ test("can deleteJSON with client middleware", async () => {
 
   let called = false;
   client.use(async (ctx, next) => {
-    expect(ctx).toBeTruthy();
-    expect(ctx.request).toBeTruthy();
-    expect(ctx.response).toBeFalsy();
+    expect(ctx.request).toBeInstanceOf(Request);
+    expect(ctx.response).toBeNull();
     called = true;
     await next();
     assert(ctx.response);
@@ -239,16 +239,16 @@ test("can deleteJSON with client middleware", async () => {
   const r = await client.deleteJSON<Todo>("https://jsonplaceholder.typicode.com/todos/1");
   expect(r.ok).toBe(true);
   expect(r.status).toBe(200);
-  assert(r.data);
   expect(called).toBe(true);
-  expect(r.data!.userId).toBe(1);
-  expect(r.data!.id).toBe(1);
-  expect(r.data!.title).toBe("A random title");
-  expect(r.data!.completed).toBe(false);
+  expect(r.data).toEqual({
+    userId: 1,
+    id: 1,
+    title: "A random title",
+    completed: false,
+  });
 });
 
 test("json helpers preserve defaultRequestOptions headers", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/get").reply(200, { ok: true });
   mocks.onPost("/todos/post").reply(200, { ok: true });
   mocks.onPut("/todos/put").reply(200, { ok: true });
@@ -310,7 +310,6 @@ test("json helpers preserve defaultRequestOptions headers", async () => {
 });
 
 test("can delete with 204 no content", async () => {
-  const mocks = new MockRegistry();
   mocks.onDelete("/todos/1").reply(204);
 
   const client = new FetchClient();
@@ -323,7 +322,6 @@ test("can delete with 204 no content", async () => {
 });
 
 test("can get loading status", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").delay(10).reply(200, { id: 1 });
 
   const client = new FetchClient();
@@ -337,7 +335,6 @@ test("can get loading status", async () => {
 });
 
 test("can use loading event", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").delay(10).reply(200, { id: 1 });
 
   const client = new FetchClient();
@@ -357,7 +354,6 @@ test("can use loading event", async () => {
 });
 
 test("request history is recorded", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/users").reply(200, []);
   mocks.onPost("/users").reply(201, { id: 1 });
 
@@ -374,7 +370,6 @@ test("request history is recorded", async () => {
 });
 
 test("can head with client middleware", async () => {
-  const mocks = new MockRegistry();
   mocks.onHead("/todos/1").reply(200, null, {
     "Content-Length": "1234",
     "Content-Type": "application/json",
@@ -385,10 +380,9 @@ test("can head with client middleware", async () => {
 
   let called = false;
   client.use(async (ctx, next) => {
-    expect(ctx).toBeTruthy();
-    expect(ctx.request).toBeTruthy();
+    expect(ctx.request).toBeInstanceOf(Request);
     expect(ctx.request.method).toBe("HEAD");
-    expect(ctx.response).toBeFalsy();
+    expect(ctx.response).toBeNull();
     called = true;
     await next();
     assert(ctx.response);
@@ -402,7 +396,6 @@ test("can head with client middleware", async () => {
 });
 
 test("head request history is recorded", async () => {
-  const mocks = new MockRegistry();
   mocks.onHead("/users").reply(200);
   mocks.onGet("/users").reply(200, []);
 
@@ -419,7 +412,6 @@ test("head request history is recorded", async () => {
 });
 
 test("can use .json<T>() helper on get()", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/users/1").reply(200, {
     id: 1,
     name: "John Doe",
@@ -436,13 +428,14 @@ test("can use .json<T>() helper on get()", async () => {
     })
     .json<{ id: number; name: string; email: string }>();
 
-  expect(user.id).toBe(1);
-  expect(user.name).toBe("John Doe");
-  expect(user.email).toBe("john@example.com");
+  expect(user).toEqual({
+    id: 1,
+    name: "John Doe",
+    email: "john@example.com",
+  });
 });
 
 test("can use .json<T>() helper on post()", async () => {
-  const mocks = new MockRegistry();
   mocks.onPost("/users").reply(201, {
     id: 42,
     name: "Jane Smith",
@@ -465,7 +458,6 @@ test("can use .json<T>() helper on post()", async () => {
 });
 
 test("can use .text() helper on get()", async () => {
-  const mocks = new MockRegistry();
   // MockRegistry JSON-encodes bodies by default, so we pass an object
   // and verify we get the JSON-stringified version via .text()
   mocks.onGet("/api/info").reply(200, { message: "hello" });
@@ -479,7 +471,6 @@ test("can use .text() helper on get()", async () => {
 });
 
 test("ResponsePromise can be awaited directly", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(200, { value: "test" });
 
   const client = new FetchClient();
@@ -499,7 +490,6 @@ test("default export fc.get().json<T>() works", async () => {
   // Import the default export and the default provider instance
   const { default: fc, defaultProviderInstance } = await import("../src/index.ts");
 
-  const mocks = new MockRegistry();
   mocks.onGet("/api/user").reply(200, { id: 1, name: "Test User" });
 
   // Install mocks on the default provider instance that fc uses
@@ -520,7 +510,6 @@ test("default export fc.getJSON<T>() works", async () => {
   // Import the default export and the default provider instance
   const { default: fc, defaultProviderInstance } = await import("../src/index.ts");
 
-  const mocks = new MockRegistry();
   mocks.onGet("/api/user").reply(200, { id: 2, name: "Another User" });
 
   // Install mocks on the default provider instance that fc uses
@@ -536,7 +525,6 @@ test("default export fc.getJSON<T>() works", async () => {
 test("default and named QUERY exports work", async () => {
   const { default: fc, defaultProviderInstance, queryJSON } = await import("../src/index.ts");
 
-  const mocks = new MockRegistry();
   mocks.onQuery("/api/search").reply(200, [{ id: 1 }]);
   mocks.onQuery("/api/count").reply(200, { count: 1 });
   mocks.install(defaultProviderInstance);
@@ -560,12 +548,16 @@ test("default and named QUERY exports work", async () => {
 test("default export fc.use(fc.middleware.retry()) works", async () => {
   const { default: fc, defaultProviderInstance } = await import("../src/index.ts");
 
-  const mocks = new MockRegistry();
   // First request fails, second succeeds
   mocks.onGet("/api/retry").replyOnce(500, { error: "Server Error" });
   mocks.onGet("/api/retry").reply(200, { success: true });
 
   mocks.install(defaultProviderInstance);
+
+  const defaultOptions = defaultProviderInstance.options;
+  onTestFinished(() => {
+    defaultProviderInstance.options = defaultOptions;
+  });
 
   // Use fc.use with fc.middleware.retry
   fc.use(fc.middleware.retry({ limit: 2, delay: () => 10, jitter: 0 }));

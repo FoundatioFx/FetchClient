@@ -1,7 +1,7 @@
-import { expect, test } from "vite-plus/test";
+import { afterEach, assert, expect, test, vi } from "vite-plus/test";
+import { FetchClientError } from "../src/FetchClientError.ts";
 import { FetchClientProvider } from "../src/FetchClientProvider.ts";
 import { RateLimitError, type RateLimitMiddlewareOptions } from "../src/RateLimitMiddleware.ts";
-import type { FetchClientResponse } from "../src/FetchClientResponse.ts";
 import {
   buildRateLimitHeader,
   buildRateLimitPolicyHeader,
@@ -32,6 +32,10 @@ const createMockFetch = (
     );
   };
 };
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 test("RateLimiter - basic functionality", () => {
   const rateLimiter = new RateLimiter({
@@ -109,7 +113,8 @@ test("RateLimiter - group initialization", () => {
   expect(rateLimiter.getRemainingRequests("https://api.example.com/test")).toBe(10);
 });
 
-test("RateLimiter - time window expiry", async () => {
+test("RateLimiter - time window expiry", () => {
+  vi.useFakeTimers();
   const rateLimiter = new RateLimiter({
     maxRequests: 1,
     windowSeconds: 0.1,
@@ -122,7 +127,7 @@ test("RateLimiter - time window expiry", async () => {
   expect(rateLimiter.isAllowed("http://example.com")).toBe(false);
 
   // Wait for window to expire
-  await new Promise((resolve) => setTimeout(resolve, 150));
+  vi.advanceTimersByTime(150);
 
   // Request should be allowed again
   expect(rateLimiter.isAllowed("http://example.com")).toBe(true);
@@ -172,18 +177,14 @@ test("RateLimitMiddleware - returns 429 response when configured", async () => {
   expect(response1.status).toBe(200);
 
   // Second request should throw 429 response
-  try {
-    await client.get("http://example.com");
-    throw new Error("Expected rate limit response to be thrown");
-  } catch (error) {
-    // FetchClient throws FetchClientError for 4xx/5xx status codes
-    const response = (error as { response: FetchClientResponse<unknown> }).response;
-    expect(response.status).toBe(429);
-    expect(response.problem?.title).toBe("Too Many Requests");
-    if (response.problem?.detail) {
-      expect(response.problem.detail.includes("Custom rate limit message")).toBe(true);
-    }
-  }
+  const error = await client.get("http://example.com").catch((e: unknown) => e);
+
+  // FetchClient throws FetchClientError for 4xx/5xx status codes
+  assert(error instanceof FetchClientError);
+  const response = error.response;
+  expect(response.status).toBe(429);
+  expect(response.problem.title).toBe("Too Many Requests");
+  expect(response.problem.detail).toContain("Custom rate limit message");
 });
 
 test("RateLimitMiddleware - provides rate limit info in error response", async () => {
@@ -205,17 +206,15 @@ test("RateLimitMiddleware - provides rate limit info in error response", async (
   expect(response1.status).toBe(200);
 
   // Second request should throw 429 with rate limit headers
-  try {
-    await client.get("http://example.com");
-    throw new Error("Expected rate limit response to be thrown");
-  } catch (error) {
-    const response = (error as { response: FetchClientResponse<unknown> }).response;
-    expect(response.status).toBe(429);
-    expect(response.headers.get("RateLimit-Limit")).toBe("1");
-    expect(response.headers.get("RateLimit-Remaining")).toBe("0");
-    expect(response.headers.get("RateLimit-Reset") !== null).toBe(true);
-    expect(response.headers.get("Retry-After") !== null).toBe(true);
-  }
+  const error = await client.get("http://example.com").catch((e: unknown) => e);
+
+  assert(error instanceof FetchClientError);
+  const response = error.response;
+  expect(response.status).toBe(429);
+  expect(response.headers.get("RateLimit-Limit")).toBe("1");
+  expect(response.headers.get("RateLimit-Remaining")).toBe("0");
+  expect(response.headers.get("RateLimit-Reset")).not.toBeNull();
+  expect(response.headers.get("Retry-After")).not.toBeNull();
 });
 
 test("createRateLimitMiddleware - custom group generator", async () => {
@@ -245,7 +244,7 @@ test("createRateLimitMiddleware - custom group generator", async () => {
   // Second request should call key generator and throw
   await expect(client.get("http://example.com")).rejects.toThrow(RateLimitError);
   // The key generator might be called multiple times due to the rate limiting logic
-  expect(callCount >= 2).toBe(true);
+  expect(callCount).toBeGreaterThanOrEqual(2);
 });
 
 test("RateLimitError - contains correct information", async () => {
@@ -264,19 +263,13 @@ test("RateLimitError - contains correct information", async () => {
   await client.get("http://example.com");
 
   // Second request should throw with proper error info
-  try {
-    await client.get("http://example.com");
-    throw new Error("Expected request to fail");
-  } catch (error) {
-    if (error instanceof RateLimitError) {
-      expect(error.name).toBe("RateLimitError");
-      expect(error.remainingRequests).toBe(0);
-      expect(typeof error.resetTime).toBe("number");
-      expect(error.resetTime > Date.now()).toBe(true);
-    } else {
-      throw new Error("Expected RateLimitError");
-    }
-  }
+  const error = await client.get("http://example.com").catch((e: unknown) => e);
+
+  assert(error instanceof RateLimitError);
+  expect(error.name).toBe("RateLimitError");
+  expect(error.remainingRequests).toBe(0);
+  expect(error.resetTime).toBeTypeOf("number");
+  expect(error.resetTime).toBeGreaterThan(Date.now());
 });
 
 test("RateLimiter - updateFromHeaders with standard headers", () => {
@@ -382,8 +375,8 @@ test("RateLimiter - updateFromHeaders with reset time calculation", () => {
   const groupOptions = rateLimiter.getGroupOptions("test-group");
   expect(groupOptions.maxRequests).toBe(50);
   // Window should be approximately 90 seconds
-  expect(groupOptions.windowSeconds! >= 85).toBe(true);
-  expect(groupOptions.windowSeconds! <= 95).toBe(true);
+  expect(groupOptions.windowSeconds).toBeGreaterThanOrEqual(85);
+  expect(groupOptions.windowSeconds).toBeLessThanOrEqual(95);
 });
 
 test("RateLimiter - updateFromHeaders with malformed IETF headers", () => {

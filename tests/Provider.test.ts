@@ -1,7 +1,11 @@
-import { expect, test } from "vite-plus/test";
+import { afterEach, expect, test, vi } from "vite-plus/test";
 import { FetchClientProvider } from "../src/FetchClientProvider.ts";
 import { ProblemDetails } from "../src/ProblemDetails.ts";
 import { MockRegistry } from "../src/mocks/MockRegistry.ts";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 test("FetchClientProvider - creates client with shared cache", async () => {
   const provider = new FetchClientProvider();
@@ -83,7 +87,7 @@ test("FetchClientProvider - useMiddleware applies to all clients", async () => {
   await client.getJSON("/api/data");
 
   expect(logs.length).toBe(2);
-  expect(logs[0].includes("/api/data")).toBe(true);
+  expect(logs[0]).toContain("/api/data");
   expect(logs[1]).toBe("after: 200");
 
   mocks.restore();
@@ -150,6 +154,7 @@ test("FetchClientProvider - loading state tracks requests", async () => {
 });
 
 test("FetchClientProvider - requestCount tracks concurrent requests", async () => {
+  vi.useFakeTimers();
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/api/data1").delay(50).reply(200, { value: 1 });
@@ -166,6 +171,7 @@ test("FetchClientProvider - requestCount tracks concurrent requests", async () =
   expect(provider.requestCount).toBe(2);
   expect(provider.isLoading).toBe(true);
 
+  await vi.advanceTimersByTimeAsync(50);
   await Promise.all([promise1, promise2]);
 
   expect(provider.requestCount).toBe(0);

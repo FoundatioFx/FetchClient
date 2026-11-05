@@ -1,9 +1,18 @@
-import { expect, test } from "vite-plus/test";
+import { afterEach, beforeEach, expect, onTestFinished, test } from "vite-plus/test";
 import { FetchClient, setBaseUrl } from "../src/index.ts";
 import { MockRegistry } from "../src/mocks/MockRegistry.ts";
 
+let mocks: MockRegistry;
+
+beforeEach(() => {
+  mocks = new MockRegistry();
+});
+
+afterEach(() => {
+  mocks.restore();
+});
+
 test("can getJSON relative URL", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, { id: 1 });
 
   const client = new FetchClient();
@@ -22,7 +31,6 @@ test("can getJSON relative URL", async () => {
 });
 
 test("can use params option to add query parameters", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, { id: 1 });
 
   const client = new FetchClient();
@@ -44,7 +52,6 @@ test("can use params option to add query parameters", async () => {
 });
 
 test("can use baseUrl option", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/users/123").reply(200, { id: 123, name: "Test" });
 
   const client = new FetchClient({
@@ -64,13 +71,13 @@ test("can use baseUrl option", async () => {
 });
 
 test("can use global setBaseUrl", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/products/search").reply(200, {
     products: [{ id: 1 }],
   });
 
   // Set global base URL
   setBaseUrl("https://dummyjson.com");
+  onTestFinished(() => setBaseUrl(""));
 
   const api = new FetchClient();
   expect(api.options.baseUrl).toBe("https://dummyjson.com");
@@ -85,13 +92,9 @@ test("can use global setBaseUrl", async () => {
 
   await api.getJSON(`products/search?q=iphone&limit=10`);
   expect(requestedUrl.startsWith("https://dummyjson.com/products/search")).toBe(true);
-
-  // Reset global base URL
-  setBaseUrl("");
 });
 
 test("params are merged with existing query string", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/search").reply(200, { results: [] });
 
   const client = new FetchClient();
@@ -118,7 +121,6 @@ test("params are merged with existing query string", async () => {
 });
 
 test("url without leading slash uses baseUrl correctly", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/api/users").reply(200, [{ id: 1 }]);
 
   const client = new FetchClient({
@@ -138,7 +140,6 @@ test("url without leading slash uses baseUrl correctly", async () => {
 });
 
 test("absolute URL ignores baseUrl", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/data").reply(200, { id: 1 });
 
   const client = new FetchClient({
@@ -158,7 +159,6 @@ test("absolute URL ignores baseUrl", async () => {
 });
 
 test("default request params are merged with per-request params", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/search").reply(200, { results: [] });
 
   const client = new FetchClient({
@@ -192,7 +192,6 @@ test("default request params are merged with per-request params", async () => {
 });
 
 test("array params are handled correctly", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/filter").reply(200, { results: [] });
 
   const client = new FetchClient();

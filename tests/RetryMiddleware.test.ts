@@ -1,8 +1,12 @@
-import { expect, test } from "vite-plus/test";
+import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
 import { FetchClient } from "../src/FetchClient.ts";
 import { FetchClientProvider } from "../src/FetchClientProvider.ts";
 import { MockRegistry } from "../src/mocks/MockRegistry.ts";
 import { createRetryMiddleware, RetryMiddleware } from "../src/RetryMiddleware.ts";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 test("RetryMiddleware - does not retry on success", async () => {
   const mocks = new MockRegistry();
@@ -122,6 +126,7 @@ test("RetryMiddleware - can configure retryable methods to exclude GET", async (
 });
 
 test("RetryMiddleware - respects Retry-After header in seconds", async () => {
+  vi.useFakeTimers();
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").replyOnce(
     429,
@@ -132,25 +137,24 @@ test("RetryMiddleware - respects Retry-After header in seconds", async () => {
   );
   mocks.onGet("/api/data").reply(200, { success: true });
 
-  const startTime = Date.now();
-
   const provider = new FetchClientProvider();
   provider.useRetry({ limit: 3, jitter: 0 });
   mocks.install(provider);
 
   const client = provider.getFetchClient();
-  const response = await client.getJSON("https://example.com/api/data", {
+  const request = client.getJSON("https://example.com/api/data", {
     expectedStatusCodes: [429],
   });
 
-  const elapsedTime = Date.now() - startTime;
+  // Should wait the full 1 second (1000ms) from Retry-After before retrying
+  await vi.advanceTimersByTimeAsync(999);
+  expect(mocks.history.all.length).toBe(1);
+
+  await vi.advanceTimersByTimeAsync(1);
+  const response = await request;
 
   expect(response.status).toBe(200);
   expect(mocks.history.all.length).toBe(2);
-  // Should have waited at least 1 second (1000ms) for Retry-After
-  expect(elapsedTime, `Expected at least 900ms delay, got ${elapsedTime}ms`).toBeGreaterThanOrEqual(
-    900,
-  );
 });
 
 test("RetryMiddleware - does not retry when Retry-After exceeds maxRetryAfter", async () => {
@@ -297,6 +301,7 @@ test("RetryMiddleware - onRetry callback is called", async () => {
 });
 
 test("RetryMiddleware - backoffLimit caps exponential delay", async () => {
+  vi.useFakeTimers();
   const delays: number[] = [];
 
   const mocks = new MockRegistry();
@@ -314,14 +319,14 @@ test("RetryMiddleware - backoffLimit caps exponential delay", async () => {
   mocks.install(provider);
 
   const client = provider.getFetchClient();
-  await client.getJSON("https://example.com/api/data", {
+  const request = client.getJSON("https://example.com/api/data", {
     expectedStatusCodes: [500],
   });
+  await vi.runAllTimersAsync();
+  await request;
 
   // All delays should be capped at backoffLimit
-  for (const delay of delays) {
-    expect(delay, `Delay ${delay} exceeds backoffLimit`).toBeLessThanOrEqual(100);
-  }
+  expect(delays).toEqual([100, 100, 100, 100, 100]);
 });
 
 test("RetryMiddleware - retry count stored in context", async () => {
@@ -445,6 +450,7 @@ test("createRetryMiddleware - can be used with client.use()", async () => {
   const client = new FetchClient();
   client.use(createRetryMiddleware({ limit: 3, jitter: 0, delay: () => 10 }));
   mocks.install(client);
+  onTestFinished(() => mocks.restore());
 
   const response = await client.getJSON("https://example.com/api/data", {
     expectedStatusCodes: [500],

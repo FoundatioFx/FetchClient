@@ -1,7 +1,11 @@
-import { assert, expect, test } from "vite-plus/test";
+import { afterEach, expect, onTestFinished, test, vi } from "vite-plus/test";
 import { FetchClient } from "../src/FetchClient.ts";
 import { FetchClientProvider } from "../src/FetchClientProvider.ts";
 import { MockRegistry } from "../src/mocks/MockRegistry.ts";
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 test("MockRegistry - basic GET mock", async () => {
   const mocks = new MockRegistry();
@@ -191,16 +195,13 @@ test("MockRegistry - timeout throws when using fetch directly", async () => {
   mocks.install(provider);
 
   // Using fetch directly throws the TimeoutError
-  try {
-    await provider.fetch!("https://example.com/api/slow");
-    throw new Error("Should have thrown");
-  } catch (e) {
-    assert(e instanceof DOMException);
-    expect(e.name).toBe("TimeoutError");
-  }
+  const request = provider.fetch!("https://example.com/api/slow");
+  await expect(request).rejects.toBeInstanceOf(DOMException);
+  await expect(request).rejects.toHaveProperty("name", "TimeoutError");
 });
 
 test("MockRegistry - delay response", async () => {
+  vi.useFakeTimers();
   const mocks = new MockRegistry();
   mocks.onGet("/api/delayed").delay(50).reply(200, { delayed: true });
 
@@ -209,16 +210,16 @@ test("MockRegistry - delay response", async () => {
 
   const client = provider.getFetchClient();
 
-  const start = Date.now();
-  const response = await client.getJSON("https://example.com/api/delayed");
-  const elapsed = Date.now() - start;
-  const minimumExpectedDelayMs = 45;
+  const request = client.getJSON("https://example.com/api/delayed");
+
+  await vi.advanceTimersByTimeAsync(49);
+  expect(provider.isLoading).toBe(true);
+
+  await vi.advanceTimersByTimeAsync(1);
+  const response = await request;
 
   expect(response.data).toEqual({ delayed: true });
-  expect(
-    elapsed,
-    `Expected delay of at least ${minimumExpectedDelayMs}ms, got ${elapsed}ms`,
-  ).toBeGreaterThanOrEqual(minimumExpectedDelayMs);
+  expect(provider.isLoading).toBe(false);
 });
 
 test("MockRegistry - withHeaders conditional matching", async () => {
@@ -317,6 +318,7 @@ test("MockRegistry - install on FetchClient uses provider", async () => {
 
   const client = new FetchClient();
   mocks.install(client);
+  onTestFinished(() => mocks.restore());
 
   const response = await client.getJSON("https://example.com/api/users");
   expect(response.data).toEqual([{ id: 1 }]);
@@ -331,12 +333,9 @@ test("MockRegistry - throws if already installed", () => {
 
   const provider2 = new FetchClientProvider();
 
-  try {
-    mocks.install(provider2);
-    throw new Error("Should have thrown");
-  } catch (e) {
-    expect((e as Error).message).toBe("MockRegistry is already installed. Call restore() first.");
-  }
+  expect(() => mocks.install(provider2)).toThrow(
+    new Error("MockRegistry is already installed. Call restore() first."),
+  );
 
   mocks.restore();
 });

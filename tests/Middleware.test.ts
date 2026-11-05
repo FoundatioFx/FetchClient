@@ -1,4 +1,4 @@
-import { assert, expect, test } from "vite-plus/test";
+import { afterEach, assert, beforeEach, expect, test } from "vite-plus/test";
 import { FetchClient, type FetchClientContext, ProblemDetails } from "../src/index.ts";
 import { FetchClientProvider } from "../src/FetchClientProvider.ts";
 import { MockRegistry } from "../src/mocks/MockRegistry.ts";
@@ -10,8 +10,17 @@ type Todo = {
   completed: boolean;
 };
 
+let mocks: MockRegistry;
+
+beforeEach(() => {
+  mocks = new MockRegistry();
+});
+
+afterEach(() => {
+  mocks.restore();
+});
+
 test("can use provider middleware", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
     id: 1,
@@ -24,30 +33,29 @@ test("can use provider middleware", async () => {
 
   let called = false;
   provider.useMiddleware(async (ctx, next) => {
-    expect(ctx).toBeTruthy();
-    expect(ctx.request).toBeTruthy();
-    expect(ctx.response).toBeFalsy();
+    expect(ctx.request).toBeInstanceOf(Request);
+    expect(ctx.response).toBeNull();
     called = true;
     await next();
     assert(ctx.response);
   });
 
   const client = provider.getFetchClient();
-  expect(client).toBeTruthy();
+  expect(client).toBeInstanceOf(FetchClient);
 
   const r = await client.getJSON<Todo>("https://jsonplaceholder.typicode.com/todos/1");
   expect(r.ok).toBe(true);
   expect(r.status).toBe(200);
-  assert(r.data);
   expect(called).toBe(true);
-  expect(r.data!.userId).toBe(1);
-  expect(r.data!.id).toBe(1);
-  expect(r.data!.title).toBe("A random title");
-  expect(r.data!.completed).toBe(false);
+  expect(r.data).toEqual({
+    userId: 1,
+    id: 1,
+    title: "A random title",
+    completed: false,
+  });
 });
 
 test("can use client middleware", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
     id: 1,
@@ -60,9 +68,8 @@ test("can use client middleware", async () => {
 
   let called = false;
   client.use(async (ctx, next) => {
-    expect(ctx).toBeTruthy();
-    expect(ctx.request).toBeTruthy();
-    expect(ctx.response).toBeFalsy();
+    expect(ctx.request).toBeInstanceOf(Request);
+    expect(ctx.response).toBeNull();
     called = true;
     await next();
     assert(ctx.response);
@@ -76,7 +83,6 @@ test("can use client middleware", async () => {
 });
 
 test("middleware can modify context", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
     id: 1,
@@ -104,7 +110,6 @@ test("middleware can modify context", async () => {
 });
 
 test("middleware chain executes in order", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/data").reply(200, { value: 1 });
 
   const provider = new FetchClientProvider();
@@ -137,7 +142,6 @@ test("middleware chain executes in order", async () => {
 });
 
 test("will validate postJSON model with provider model validator", async () => {
-  const mocks = new MockRegistry();
   mocks.onPost("/todos/1").reply(200, { success: true });
 
   const provider = new FetchClientProvider();
@@ -169,18 +173,14 @@ test("will validate postJSON model with provider model validator", async () => {
   expect(response.ok).toBe(false);
   expect(fetchCalled).toBe(false);
   expect(response.status).toBe(422);
-  expect(response.data).toBeFalsy();
-  expect(response.problem).toBeTruthy();
-  expect(response.problem!.errors).toBeTruthy();
-  assert(response.problem!.errors.password);
-  expect(response.problem!.errors.password!.length).toBe(1);
-  expect(response.problem!.errors.password![0]).toBe(
+  expect(response.data).toBeNull();
+  expect(response.problem).toBeInstanceOf(ProblemDetails);
+  expect(response.problem.errors.password).toEqual([
     "Password must be longer than or equal to 6 characters.",
-  );
+  ]);
 });
 
 test("can use kitchen sink options", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/products/search").reply(200, {
     products: [{ id: 1 }, { id: 2 }, { id: 3 }],
   });
@@ -207,18 +207,16 @@ test("can use kitchen sink options", async () => {
     },
     middleware: [
       async (ctx, next) => {
-        expect(ctx).toBeTruthy();
-        expect(ctx.request).toBeTruthy();
-        expect(ctx.response).toBeFalsy();
+        expect(ctx.request).toBeInstanceOf(Request);
+        expect(ctx.response).toBeNull();
         optionsCalled = true;
         await next();
         assert(ctx.response);
       },
     ],
   }).use(async (ctx, next) => {
-    expect(ctx).toBeTruthy();
-    expect(ctx.request).toBeTruthy();
-    expect(ctx.response).toBeFalsy();
+    expect(ctx.request).toBeInstanceOf(Request);
+    expect(ctx.response).toBeNull();
     called = true;
     await next();
     assert(ctx.response);
@@ -236,7 +234,6 @@ test("can use kitchen sink options", async () => {
 });
 
 test("middleware can access response data", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/data").reply(200, { value: 42, name: "test" });
 
   const client = new FetchClient();

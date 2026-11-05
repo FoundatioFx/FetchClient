@@ -1,4 +1,4 @@
-import { assert, expect, test } from "vite-plus/test";
+import { afterEach, assert, beforeEach, expect, test } from "vite-plus/test";
 import {
   FetchClient,
   FetchClientDeserializationError,
@@ -9,8 +9,17 @@ import {
 import { FetchClientProvider } from "../src/FetchClientProvider.ts";
 import { MockRegistry } from "../src/mocks/MockRegistry.ts";
 
+let mocks: MockRegistry;
+
+beforeEach(() => {
+  mocks = new MockRegistry();
+});
+
+afterEach(() => {
+  mocks.restore();
+});
+
 test("can handle 404 error with expectedStatusCodes", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(404);
 
   const client = new FetchClient();
@@ -25,7 +34,6 @@ test("can handle 404 error with expectedStatusCodes", async () => {
 });
 
 test("throws error for unexpected status codes by default", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(404);
 
   const client = new FetchClient();
@@ -37,7 +45,6 @@ test("throws error for unexpected status codes by default", async () => {
 });
 
 test("can use shouldThrowOnUnexpectedStatusCodes to not throw", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(404);
 
   const client = new FetchClient();
@@ -51,7 +58,6 @@ test("can use shouldThrowOnUnexpectedStatusCodes to not throw", async () => {
 });
 
 test("can use errorCallback to not throw", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(404);
 
   const client = new FetchClient();
@@ -65,7 +71,6 @@ test("can use errorCallback to not throw", async () => {
 });
 
 test("can use errorCallback to throw custom error", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(404);
 
   const client = new FetchClient();
@@ -81,7 +86,6 @@ test("can use errorCallback to throw custom error", async () => {
 });
 
 test("errorCallback returning false or undefined throws", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(404);
   mocks.onGet("/todos/2").reply(404);
 
@@ -119,25 +123,21 @@ test("handles 400 response with non-JSON text", async () => {
   const client = provider.getFetchClient();
 
   // Test that the client throws an error for 400 status by default
-  try {
-    await client.deleteJSON("https://example.com/http/400/Hello World", {
+  const error = await client
+    .deleteJSON("https://example.com/http/400/Hello World", {
       headers: { Accept: "text/plain" },
-    });
-  } catch (error) {
-    assert(error instanceof FetchClientError);
-    const response = error.response as FetchClientResponse<unknown>;
-    expect(response.status).toBe(400);
-    expect(response.statusText).toBe("Bad Request");
-    expect(response.ok).toBe(false);
-    expect(response.data).toBeNull();
-    expect(response.problem).toBeTruthy();
-    expect(response.problem.errors).toBeTruthy();
-    assert(response.problem.title);
-    expect(response.problem.title).toContain("Bad Request");
-    assert(response.problem.errors.general);
-    expect(response.problem.errors.general.length).toBe(1);
-    expect(response.problem.errors.general[0]).toContain("Bad Request");
-  }
+    })
+    .catch((e: unknown) => e);
+
+  assert(error instanceof FetchClientError);
+  const errorResponse = error.response as FetchClientResponse<unknown>;
+  expect(errorResponse.status).toBe(400);
+  expect(errorResponse.statusText).toBe("Bad Request");
+  expect(errorResponse.ok).toBe(false);
+  expect(errorResponse.data).toBeNull();
+  expect(errorResponse.problem).toBeInstanceOf(ProblemDetails);
+  expect(errorResponse.problem.title).toContain("Bad Request");
+  expect(errorResponse.problem.errors.general).toEqual([expect.stringContaining("Bad Request")]);
 
   // Test with expectedStatusCodes to handle 400 without throwing
   const response = await client.deleteJSON("https://example.com/http/400/Hello World", {
@@ -148,17 +148,14 @@ test("handles 400 response with non-JSON text", async () => {
   expect(response.statusText).toBe("Bad Request");
   expect(response.ok).toBe(false);
   expect(response.data).toBeNull();
-  expect(response.problem).toBeTruthy();
-  expect(response.problem.errors).toBeTruthy();
-  assert(response.problem.title);
+  expect(response.problem).toBeInstanceOf(ProblemDetails);
   expect(response.problem.title).toContain("Unable to deserialize");
-  assert(response.problem.errors.general);
-  expect(response.problem.errors.general.length).toBe(1);
-  expect(response.problem.errors.general[0]).toContain("Unable to deserialize");
+  expect(response.problem.errors.general).toEqual([
+    expect.stringContaining("Unable to deserialize"),
+  ]);
 });
 
 test("handles 403 with empty body without deserialization error", async () => {
-  const mocks = new MockRegistry();
   mocks.onPost("/api/resource").reply(403);
 
   const client = new FetchClient();
@@ -175,11 +172,10 @@ test("handles 403 with empty body without deserialization error", async () => {
   expect(error.response.problem.status).toBe(403);
   expect(error.message).toContain("Forbidden");
   // Should NOT contain deserialization error
-  expect(error.message.includes("Unable to deserialize")).toBeFalsy();
+  expect(error.message).not.toContain("Unable to deserialize");
 });
 
 test("handles empty body error response with expectedStatusCodes", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/api/resource").reply(403);
 
   const client = new FetchClient();
@@ -191,13 +187,12 @@ test("handles empty body error response with expectedStatusCodes", async () => {
 
   expect(res.ok).toBe(false);
   expect(res.status).toBe(403);
-  expect(res.problem).toBeTruthy();
+  expect(res.problem).toBeInstanceOf(ProblemDetails);
   // Problem title should not mention deserialization failure
-  expect(res.problem.title?.includes("Unable to deserialize") ?? false).toBe(false);
+  expect(res.problem.title ?? "").not.toContain("Unable to deserialize");
 });
 
 test("network error throws TypeError", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/api/flaky").networkError("Connection refused");
 
   const client = new FetchClient();
@@ -209,7 +204,6 @@ test("network error throws TypeError", async () => {
 });
 
 test("problem details are populated on error responses", async () => {
-  const mocks = new MockRegistry();
   mocks.onGet("/error").reply(500, {
     type: "https://example.com/errors/internal",
     title: "Internal Server Error",
@@ -227,7 +221,7 @@ test("problem details are populated on error responses", async () => {
 
   expect(res.ok).toBe(false);
   expect(res.status).toBe(500);
-  expect(res.problem).toBeTruthy();
+  expect(res.problem).toBeInstanceOf(ProblemDetails);
   expect(res.problem.title).toBe("Internal Server Error");
   expect(res.problem.detail).toBe("Something went wrong");
   expect(res.problem.status).toBe(500);

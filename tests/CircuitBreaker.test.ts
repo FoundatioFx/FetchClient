@@ -1,12 +1,12 @@
-import { assert, expect, test } from "vite-plus/test";
+import { afterEach, assert, expect, test, vi } from "vite-plus/test";
 import { CircuitBreaker, groupByDomain } from "../src/CircuitBreaker.ts";
 import { CircuitOpenError } from "../src/CircuitBreakerMiddleware.ts";
 import { FetchClientProvider } from "../src/FetchClientProvider.ts";
 import { MockRegistry } from "../src/mocks/MockRegistry.ts";
 
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 // ============================================
 // CircuitBreaker Core Tests
@@ -62,7 +62,8 @@ test("CircuitBreaker - blocks requests in OPEN state", () => {
   expect(breaker.isAllowed(url)).toBe(false);
 });
 
-test("CircuitBreaker - transitions to HALF_OPEN after openDuration", async () => {
+test("CircuitBreaker - transitions to HALF_OPEN after openDuration", () => {
+  vi.useFakeTimers();
   const breaker = new CircuitBreaker({
     failureThreshold: 2,
     openDurationMs: 50,
@@ -76,7 +77,7 @@ test("CircuitBreaker - transitions to HALF_OPEN after openDuration", async () =>
   expect(breaker.getState(url)).toBe("OPEN");
 
   // Wait for openDuration
-  await delay(60);
+  vi.advanceTimersByTime(60);
 
   // Should now be HALF_OPEN (checked via getState which checks elapsed time)
   expect(breaker.getState(url)).toBe("HALF_OPEN");
@@ -85,7 +86,8 @@ test("CircuitBreaker - transitions to HALF_OPEN after openDuration", async () =>
   expect(breaker.isAllowed(url)).toBe(true);
 });
 
-test("CircuitBreaker - HALF_OPEN limits concurrent requests", async () => {
+test("CircuitBreaker - HALF_OPEN limits concurrent requests", () => {
+  vi.useFakeTimers();
   const breaker = new CircuitBreaker({
     failureThreshold: 2,
     openDurationMs: 50,
@@ -99,7 +101,7 @@ test("CircuitBreaker - HALF_OPEN limits concurrent requests", async () => {
   breaker.recordFailure(url);
 
   // Wait for HALF_OPEN
-  await delay(60);
+  vi.advanceTimersByTime(60);
 
   // First request allowed
   expect(breaker.isAllowed(url)).toBe(true);
@@ -108,7 +110,8 @@ test("CircuitBreaker - HALF_OPEN limits concurrent requests", async () => {
   expect(breaker.isAllowed(url)).toBe(false);
 });
 
-test("CircuitBreaker - closes after success threshold in HALF_OPEN", async () => {
+test("CircuitBreaker - closes after success threshold in HALF_OPEN", () => {
+  vi.useFakeTimers();
   const breaker = new CircuitBreaker({
     failureThreshold: 2,
     openDurationMs: 50,
@@ -123,7 +126,7 @@ test("CircuitBreaker - closes after success threshold in HALF_OPEN", async () =>
   breaker.recordFailure(url);
 
   // Wait for HALF_OPEN
-  await delay(60);
+  vi.advanceTimersByTime(60);
   expect(breaker.getState(url)).toBe("HALF_OPEN");
 
   // Allow requests and record successes
@@ -136,7 +139,8 @@ test("CircuitBreaker - closes after success threshold in HALF_OPEN", async () =>
   expect(breaker.getState(url)).toBe("CLOSED"); // Now closed
 });
 
-test("CircuitBreaker - reopens on failure in HALF_OPEN", async () => {
+test("CircuitBreaker - reopens on failure in HALF_OPEN", () => {
+  vi.useFakeTimers();
   const breaker = new CircuitBreaker({
     failureThreshold: 2,
     openDurationMs: 50,
@@ -150,7 +154,7 @@ test("CircuitBreaker - reopens on failure in HALF_OPEN", async () => {
   breaker.recordFailure(url);
 
   // Wait for HALF_OPEN
-  await delay(60);
+  vi.advanceTimersByTime(60);
   expect(breaker.getState(url)).toBe("HALF_OPEN");
 
   // Allow a request
@@ -177,7 +181,8 @@ test("CircuitBreaker - groupByDomain groups by hostname", () => {
   expect(breaker.isAllowed("http://api2.example.com/anything")).toBe(true);
 });
 
-test("CircuitBreaker - failure window expiration", async () => {
+test("CircuitBreaker - failure window expiration", () => {
+  vi.useFakeTimers();
   const breaker = new CircuitBreaker({
     failureThreshold: 3,
     failureWindowMs: 50,
@@ -191,7 +196,7 @@ test("CircuitBreaker - failure window expiration", async () => {
   expect(breaker.getFailureCount(url)).toBe(2);
 
   // Wait for window to expire
-  await delay(60);
+  vi.advanceTimersByTime(60);
 
   // Old failures should be cleaned up
   expect(breaker.getFailureCount(url)).toBe(0);
@@ -232,7 +237,8 @@ test("CircuitBreaker - manual trip opens circuit", () => {
   expect(breaker.isAllowed(url)).toBe(false);
 });
 
-test("CircuitBreaker - callbacks are triggered", async () => {
+test("CircuitBreaker - callbacks are triggered", () => {
+  vi.useFakeTimers();
   const events: string[] = [];
 
   const breaker = new CircuitBreaker({
@@ -253,7 +259,7 @@ test("CircuitBreaker - callbacks are triggered", async () => {
   expect(events).toEqual(["CLOSED->OPEN", "open:global"]);
 
   // Wait for HALF_OPEN
-  await delay(60);
+  vi.advanceTimersByTime(60);
   breaker.isAllowed(url); // Triggers transition check
   expect(events).toEqual(["CLOSED->OPEN", "open:global", "OPEN->HALF_OPEN", "halfOpen:global"]);
 
@@ -310,7 +316,8 @@ test("CircuitBreaker - getTimeSinceOpen returns correct value", () => {
   expect(timeSince).toBeLessThan(100); // Should be very recent
 });
 
-test("CircuitBreaker - getTimeUntilHalfOpen returns correct value", async () => {
+test("CircuitBreaker - getTimeUntilHalfOpen returns correct value", () => {
+  vi.useFakeTimers();
   const breaker = new CircuitBreaker({
     failureThreshold: 2,
     openDurationMs: 100,
@@ -326,16 +333,11 @@ test("CircuitBreaker - getTimeUntilHalfOpen returns correct value", async () => 
   breaker.recordFailure(url);
 
   // Should return time remaining
-  const timeUntil = breaker.getTimeUntilHalfOpen(url);
-  expect(timeUntil).not.toBeNull();
-  expect(timeUntil).toBeGreaterThan(0);
-  expect(timeUntil).toBeLessThanOrEqual(100);
+  expect(breaker.getTimeUntilHalfOpen(url)).toBe(100);
 
   // Wait and check again
-  await delay(60);
-  const timeUntil2 = breaker.getTimeUntilHalfOpen(url);
-  expect(timeUntil2).not.toBeNull();
-  expect(timeUntil2).toBeLessThan(timeUntil!);
+  vi.advanceTimersByTime(60);
+  expect(breaker.getTimeUntilHalfOpen(url)).toBe(40);
 });
 
 // ============================================
@@ -433,7 +435,7 @@ test("CircuitBreakerMiddleware - returns 503 when open", async () => {
 
   expect(response.status).toBe(503);
   assert(response.headers.get("Retry-After"));
-  assert(response.problem.detail?.includes("Circuit breaker is open"));
+  expect(response.problem.detail).toContain("Circuit breaker is open");
 
   // Mock should not have been called for the 503 request
   expect(mocks.history.all.length).toBe(2);
@@ -462,14 +464,11 @@ test("CircuitBreakerMiddleware - throws CircuitOpenError when configured", async
   });
 
   // Next request should throw
-  try {
-    await client.getJSON("https://api.example.com/api/data");
-    throw new Error("Should have thrown");
-  } catch (e) {
-    assert(e instanceof CircuitOpenError);
-    expect(e.group).toBe("global");
-    expect(e.retryAfter).toBeGreaterThan(0);
-  }
+  const error = await client.getJSON("https://api.example.com/api/data").catch((e: unknown) => e);
+
+  assert(error instanceof CircuitOpenError);
+  expect(error.group).toBe("global");
+  expect(error.retryAfter).toBeGreaterThan(0);
 });
 
 test("CircuitBreakerMiddleware - records network errors as failures", async () => {
@@ -486,11 +485,7 @@ test("CircuitBreakerMiddleware - records network errors as failures", async () =
   const breaker = provider.circuitBreaker!;
 
   // Network error should count as failure
-  try {
-    await client.getJSON("https://api.example.com/api/data");
-  } catch {
-    // Expected
-  }
+  await expect(client.getJSON("https://api.example.com/api/data")).rejects.toThrow(TypeError);
 
   expect(breaker.getFailureCount("https://api.example.com/api/data")).toBe(1);
 });
@@ -546,6 +541,7 @@ test("CircuitBreakerMiddleware - custom isFailure function", async () => {
 });
 
 test("CircuitBreakerMiddleware - recovery after HALF_OPEN success", async () => {
+  vi.useFakeTimers();
   const mocks = new MockRegistry();
   // First 2 requests fail, then succeed
   mocks.onGet("/api/data").replyOnce(500, { error: "Error" });
@@ -573,7 +569,7 @@ test("CircuitBreakerMiddleware - recovery after HALF_OPEN success", async () => 
   expect(breaker.getState("https://api.example.com/api/data")).toBe("OPEN");
 
   // Wait for HALF_OPEN
-  await delay(60);
+  vi.advanceTimersByTime(60);
 
   // Successful request should close the circuit
   const response = await client.getJSON("https://api.example.com/api/data");
