@@ -13,11 +13,6 @@ export default withMermaid(
     title: "Foundatio FetchClient",
     description:
       "A tiny, typed wrapper around fetch with caching, middleware, rate limiting, and great DX.",
-    base: "/",
-    ignoreDeadLinks: true,
-    markdown: {
-      lineNumbers: false,
-    },
     vite: {
       plugins: [
         llmstxt({
@@ -38,8 +33,8 @@ export default withMermaid(
     ],
     themeConfig: {
       logo: {
-        light: "https://raw.githubusercontent.com/FoundatioFx/Foundatio/master/media/foundatio.svg",
-        dark: "https://raw.githubusercontent.com/FoundatioFx/Foundatio/master/media/foundatio-dark-bg.svg",
+        light: "https://raw.githubusercontent.com/FoundatioFx/Foundatio/main/media/foundatio.svg",
+        dark: "https://raw.githubusercontent.com/FoundatioFx/Foundatio/main/media/foundatio-dark-bg.svg",
       },
       siteTitle: "FetchClient",
       nav: [
