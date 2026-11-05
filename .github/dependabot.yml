@@ -15,13 +15,13 @@ updates:
     # Gives new releases a few days to be vetted before they're proposed.
     cooldown:
       default-days: 3
+    # Upgrade the Vite+ toolchain with `vp migrate`, which re-pins these together.
+    ignore:
+      - dependency-name: vite-plus
+      - dependency-name: "@voidzero-dev/vite-plus-core"
+      - dependency-name: vitest
+      - dependency-name: "@vitest/*"
     groups:
-      # vite-plus bundles Vitest, so @vitest/coverage-v8 must move with it.
-      vite-plus:
-        patterns:
-          - vite-plus
-          - "@voidzero-dev/vite-plus-core"
-          - "@vitest/*"
       dependencies:
         update-types:
           - minor

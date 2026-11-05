@@ -61,6 +61,8 @@ concrete, and specific to FetchClient.
 - Build package: `vp pack` (emits `dist/`, regenerates `exports` in
   `package.json`, and runs publint and attw)
 - Docs: `vp run docs:dev`, `vp run docs:build`
+- Upgrade Vite+: `vp migrate` (re-pins `vite-plus`, its `vite` core alias, and
+  the `vitest`/`@vitest/*` catalog entries together; Dependabot skips these)
 
 ## 5) Common tasks (examples)
 

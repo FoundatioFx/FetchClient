@@ -14,6 +14,7 @@ It sets up Node.js, pnpm, dependencies, and the pre-commit hook.
     `vp test --project integration`
 - Coverage: `vp test --coverage`
 - Build the package: `vp pack`
+- Upgrade Vite+: `vp migrate` (keeps `vite-plus` and the pinned Vitest in sync)
 
 Library code lives in `src/` and tests in `tests/`. All tooling is configured in
 `vite.config.ts`.

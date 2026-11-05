@@ -4,14 +4,18 @@ packages:
 catalog:
   vite: npm:@voidzero-dev/vite-plus-core@1.4.0
   vite-plus: 1.4.0
-  # Must match the Vitest version bundled with vite-plus.
+  # vitest and @vitest/* must match the Vitest bundled with vite-plus; `vp migrate` keeps them aligned.
   "@vitest/coverage-v8": 5.0.5
+  vitest: 5.0.5
 overrides:
   vite@*: "catalog:"
+  vitest@*: "catalog:"
 peerDependencyRules:
   allowAny:
     - vite
+    - vitest
   allowedVersions:
     vite: "*"
     # vitepress-plugin-mermaid has not declared VitePress 2 support yet.
     vitepress-plugin-mermaid>vitepress: ">=2.0.0-alpha.0"
+    vitest: "*"
