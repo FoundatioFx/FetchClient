@@ -1,6 +1,6 @@
-import { assert, assertEquals, assertFalse } from "@std/assert";
-import { FetchClient } from "../FetchClient.ts";
-import { MockRegistry } from "../mocks/MockRegistry.ts";
+import { assert, expect, test } from "vite-plus/test";
+import { FetchClient } from "../src/FetchClient.ts";
+import { MockRegistry } from "../src/mocks/MockRegistry.ts";
 import { z, type ZodTypeAny } from "zod";
 
 const TodoSchema = z.object({
@@ -13,7 +13,7 @@ const TodoSchema = z.object({
 
 type Todo = z.infer<typeof TodoSchema>;
 
-Deno.test("can parse dates", async () => {
+test("can parse dates", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
@@ -26,27 +26,22 @@ Deno.test("can parse dates", async () => {
   const client = new FetchClient();
   mocks.install(client);
 
-  let res = await client.getJSON<Todo>(
-    `https://jsonplaceholder.typicode.com/todos/1`,
-  );
+  let res = await client.getJSON<Todo>(`https://jsonplaceholder.typicode.com/todos/1`);
 
-  assertEquals(res.status, 200);
+  expect(res.status).toBe(200);
   assert(res.data);
-  assertFalse(res.data.completedTime instanceof Date);
+  expect(res.data.completedTime instanceof Date).toBe(false);
 
-  res = await client.getJSON<Todo>(
-    `https://jsonplaceholder.typicode.com/todos/1`,
-    {
-      shouldParseDates: true,
-    },
-  );
+  res = await client.getJSON<Todo>(`https://jsonplaceholder.typicode.com/todos/1`, {
+    shouldParseDates: true,
+  });
 
-  assertEquals(res.status, 200);
+  expect(res.status).toBe(200);
   assert(res.data);
-  assert(res.data.completedTime instanceof Date);
+  expect(res.data.completedTime).toBeInstanceOf(Date);
 });
 
-Deno.test("can use reviver", async () => {
+test("can use reviver", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
@@ -59,32 +54,27 @@ Deno.test("can use reviver", async () => {
   const client = new FetchClient();
   mocks.install(client);
 
-  let res = await client.getJSON<Todo>(
-    `https://jsonplaceholder.typicode.com/todos/1`,
-  );
+  let res = await client.getJSON<Todo>(`https://jsonplaceholder.typicode.com/todos/1`);
 
-  assertEquals(res.status, 200);
+  expect(res.status).toBe(200);
   assert(res.data);
-  assertFalse(res.data.completedTime instanceof Date);
+  expect(res.data.completedTime instanceof Date).toBe(false);
 
-  res = await client.getJSON<Todo>(
-    `https://jsonplaceholder.typicode.com/todos/1`,
-    {
-      reviver: (key: string, value: unknown) => {
-        if (key === "completedTime") {
-          return new Date(<string> value);
-        }
-        return value;
-      },
+  res = await client.getJSON<Todo>(`https://jsonplaceholder.typicode.com/todos/1`, {
+    reviver: (key: string, value: unknown) => {
+      if (key === "completedTime") {
+        return new Date(value as string);
+      }
+      return value;
     },
-  );
+  });
 
-  assertEquals(res.status, 200);
+  expect(res.status).toBe(200);
   assert(res.data);
-  assert(res.data.completedTime instanceof Date);
+  expect(res.data.completedTime).toBeInstanceOf(Date);
 });
 
-Deno.test("can parse dates and use reviver together", async () => {
+test("can parse dates and use reviver together", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
@@ -97,35 +87,30 @@ Deno.test("can parse dates and use reviver together", async () => {
   const client = new FetchClient();
   mocks.install(client);
 
-  let res = await client.getJSON<Todo>(
-    `https://jsonplaceholder.typicode.com/todos/1`,
-  );
+  let res = await client.getJSON<Todo>(`https://jsonplaceholder.typicode.com/todos/1`);
 
-  assertEquals(res.status, 200);
+  expect(res.status).toBe(200);
   assert(res.data);
-  assertEquals(res.data.title, "A random title");
-  assertFalse(res.data.completedTime instanceof Date);
+  expect(res.data.title).toBe("A random title");
+  expect(res.data.completedTime instanceof Date).toBe(false);
 
-  res = await client.getJSON<Todo>(
-    `https://jsonplaceholder.typicode.com/todos/1`,
-    {
-      shouldParseDates: true,
-      reviver: (key: string, value: unknown) => {
-        if (key === "title") {
-          return "revived";
-        }
-        return value;
-      },
+  res = await client.getJSON<Todo>(`https://jsonplaceholder.typicode.com/todos/1`, {
+    shouldParseDates: true,
+    reviver: (key: string, value: unknown) => {
+      if (key === "title") {
+        return "revived";
+      }
+      return value;
     },
-  );
+  });
 
-  assertEquals(res.status, 200);
+  expect(res.status).toBe(200);
   assert(res.data);
-  assertEquals(res.data.title, "revived");
-  assert(res.data.completedTime instanceof Date);
+  expect(res.data.title).toBe("revived");
+  expect(res.data.completedTime).toBeInstanceOf(Date);
 });
 
-Deno.test("can getJSON with zod schema via middleware", async () => {
+test("can getJSON with zod schema via middleware", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
@@ -153,21 +138,18 @@ Deno.test("can getJSON with zod schema via middleware", async () => {
     }
   });
 
-  const res = await client.getJSON<Todo>(
-    `https://jsonplaceholder.typicode.com/todos/1`,
-    {
-      meta: { schema: TodoSchema },
-    },
-  );
+  const res = await client.getJSON<Todo>(`https://jsonplaceholder.typicode.com/todos/1`, {
+    meta: { schema: TodoSchema },
+  });
 
-  assertEquals(res.status, 200);
+  expect(res.status).toBe(200);
   assert(res.data);
-  assert(TodoSchema.parse(res.data));
+  expect(TodoSchema.parse(res.data)).toBeTruthy();
   // zod coerce.date() should convert string to Date
-  assert(res.data.completedTime instanceof Date);
+  expect(res.data.completedTime).toBeInstanceOf(Date);
 });
 
-Deno.test("handles null response body", async () => {
+test("handles null response body", async () => {
   const mocks = new MockRegistry();
   mocks.onDelete("/items/1").reply(204);
 
@@ -177,11 +159,11 @@ Deno.test("handles null response body", async () => {
   // Use delete() not deleteJSON() for 204 no-content responses
   const res = await client.delete("https://example.com/items/1");
 
-  assertEquals(res.status, 204);
-  assertEquals(await res.text(), "");
+  expect(res.status).toBe(204);
+  expect(await res.text()).toBe("");
 });
 
-Deno.test("handles array response", async () => {
+test("handles array response", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/items").reply(200, [
     { id: 1, name: "Item 1" },
@@ -196,14 +178,14 @@ Deno.test("handles array response", async () => {
     "https://example.com/items",
   );
 
-  assertEquals(res.status, 200);
-  assert(Array.isArray(res.data));
-  assertEquals(res.data?.length, 3);
-  assertEquals(res.data?.[0].id, 1);
-  assertEquals(res.data?.[2].name, "Item 3");
+  expect(res.status).toBe(200);
+  expect(Array.isArray(res.data)).toBe(true);
+  expect(res.data?.length).toBe(3);
+  expect(res.data?.[0].id).toBe(1);
+  expect(res.data?.[2].name).toBe("Item 3");
 });
 
-Deno.test("handles nested objects", async () => {
+test("handles nested objects", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/user/profile").reply(200, {
     id: 1,
@@ -238,11 +220,11 @@ Deno.test("handles nested objects", async () => {
 
   const res = await client.getJSON<Profile>("https://example.com/user/profile");
 
-  assertEquals(res.status, 200);
+  expect(res.status).toBe(200);
   assert(res.data);
-  assertEquals(res.data.name, "John");
-  assertEquals(res.data.address.city, "Springfield");
-  assertEquals(res.data.address.country.code, "US");
-  assertEquals(res.data.tags.length, 2);
-  assert(res.data.tags.includes("admin"));
+  expect(res.data.name).toBe("John");
+  expect(res.data.address.city).toBe("Springfield");
+  expect(res.data.address.country.code).toBe("US");
+  expect(res.data.tags.length).toBe(2);
+  expect(res.data.tags).toContain("admin");
 });

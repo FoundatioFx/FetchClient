@@ -1,9 +1,9 @@
-import { assertEquals, assertExists } from "@std/assert";
-import { FetchClientProvider } from "../FetchClientProvider.ts";
-import { ProblemDetails } from "../ProblemDetails.ts";
-import { MockRegistry } from "../mocks/MockRegistry.ts";
+import { expect, test } from "vite-plus/test";
+import { FetchClientProvider } from "../src/FetchClientProvider.ts";
+import { ProblemDetails } from "../src/ProblemDetails.ts";
+import { MockRegistry } from "../src/mocks/MockRegistry.ts";
 
-Deno.test("FetchClientProvider - creates client with shared cache", async () => {
+test("FetchClientProvider - creates client with shared cache", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(200, { value: 1 });
@@ -13,8 +13,8 @@ Deno.test("FetchClientProvider - creates client with shared cache", async () => 
   const client2 = provider.getFetchClient();
 
   // Both clients share the same cache
-  assertEquals(client1.cache, client2.cache);
-  assertEquals(client1.cache, provider.cache);
+  expect(client1.cache).toEqual(client2.cache);
+  expect(client1.cache).toEqual(provider.cache);
 
   // Cache an entry with client1
   await client1.getJSON("/api/data", {
@@ -29,12 +29,12 @@ Deno.test("FetchClientProvider - creates client with shared cache", async () => 
   });
 
   // Only one request was made
-  assertEquals(mocks.history.get.length, 1);
+  expect(mocks.history.get.length).toBe(1);
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - setBaseUrl applies to all clients", async () => {
+test("FetchClientProvider - setBaseUrl applies to all clients", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/users").reply(200, [{ id: 1 }]);
@@ -45,12 +45,12 @@ Deno.test("FetchClientProvider - setBaseUrl applies to all clients", async () =>
   const client = provider.getFetchClient();
   await client.getJSON("/users");
 
-  assertEquals(mocks.history.get[0].url, "https://api.example.com/users");
+  expect(mocks.history.get[0].url).toBe("https://api.example.com/users");
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - setAccessTokenFunc adds authorization header", async () => {
+test("FetchClientProvider - setAccessTokenFunc adds authorization header", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(200, { value: 1 });
@@ -61,15 +61,12 @@ Deno.test("FetchClientProvider - setAccessTokenFunc adds authorization header", 
   const client = provider.getFetchClient();
   await client.getJSON("/api/data");
 
-  assertEquals(
-    mocks.history.get[0].headers.get("Authorization"),
-    "Bearer test-token-123",
-  );
+  expect(mocks.history.get[0].headers.get("Authorization")).toBe("Bearer test-token-123");
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - useMiddleware applies to all clients", async () => {
+test("FetchClientProvider - useMiddleware applies to all clients", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(200, { value: 1 });
@@ -85,14 +82,14 @@ Deno.test("FetchClientProvider - useMiddleware applies to all clients", async ()
   const client = provider.getFetchClient();
   await client.getJSON("/api/data");
 
-  assertEquals(logs.length, 2);
-  assertEquals(logs[0].includes("/api/data"), true);
-  assertEquals(logs[1], "after: 200");
+  expect(logs.length).toBe(2);
+  expect(logs[0].includes("/api/data")).toBe(true);
+  expect(logs[1]).toBe("after: 200");
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - multiple middleware execute in order", async () => {
+test("FetchClientProvider - multiple middleware execute in order", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(200, { value: 1 });
@@ -121,12 +118,12 @@ Deno.test("FetchClientProvider - multiple middleware execute in order", async ()
   const client = provider.getFetchClient();
   await client.getJSON("/api/data");
 
-  assertEquals(order, [1, 2, 3, 4, 5, 6]);
+  expect(order).toEqual([1, 2, 3, 4, 5, 6]);
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - loading state tracks requests", async () => {
+test("FetchClientProvider - loading state tracks requests", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(200, { value: 1 });
@@ -139,20 +136,20 @@ Deno.test("FetchClientProvider - loading state tracks requests", async () => {
     }
   });
 
-  assertEquals(provider.isLoading, false);
-  assertEquals(provider.requestCount, 0);
+  expect(provider.isLoading).toBe(false);
+  expect(provider.requestCount).toBe(0);
 
   const client = provider.getFetchClient();
   await client.getJSON("/api/data");
 
   // Should have toggled to true then back to false
-  assertEquals(loadingStates, [true, false]);
-  assertEquals(provider.isLoading, false);
+  expect(loadingStates).toEqual([true, false]);
+  expect(provider.isLoading).toBe(false);
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - requestCount tracks concurrent requests", async () => {
+test("FetchClientProvider - requestCount tracks concurrent requests", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/api/data1").delay(50).reply(200, { value: 1 });
@@ -166,18 +163,18 @@ Deno.test("FetchClientProvider - requestCount tracks concurrent requests", async
   const promise2 = client.getJSON("/api/data2");
 
   // Should have 2 in-flight requests
-  assertEquals(provider.requestCount, 2);
-  assertEquals(provider.isLoading, true);
+  expect(provider.requestCount).toBe(2);
+  expect(provider.isLoading).toBe(true);
 
   await Promise.all([promise1, promise2]);
 
-  assertEquals(provider.requestCount, 0);
-  assertEquals(provider.isLoading, false);
+  expect(provider.requestCount).toBe(0);
+  expect(provider.isLoading).toBe(false);
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - applyOptions merges options", async () => {
+test("FetchClientProvider - applyOptions merges options", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/users").reply(200, []);
@@ -188,12 +185,12 @@ Deno.test("FetchClientProvider - applyOptions merges options", async () => {
   const client = provider.getFetchClient();
   await client.getJSON("/users");
 
-  assertEquals(mocks.history.get[0].url, "https://api.example.com/users");
+  expect(mocks.history.get[0].url).toBe("https://api.example.com/users");
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - applyOptions deep merges defaultRequestOptions", async () => {
+test("FetchClientProvider - applyOptions deep merges defaultRequestOptions", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/users").reply(200, []);
@@ -226,15 +223,15 @@ Deno.test("FetchClientProvider - applyOptions deep merges defaultRequestOptions"
 
   const request = mocks.history.get[0];
   const url = new URL(request.url);
-  assertEquals(request.headers.get("X-First"), "1");
-  assertEquals(request.headers.get("X-Second"), "2");
-  assertEquals(url.searchParams.get("a"), "1");
-  assertEquals(url.searchParams.get("b"), "2");
+  expect(request.headers.get("X-First")).toBe("1");
+  expect(request.headers.get("X-Second")).toBe("2");
+  expect(url.searchParams.get("a")).toBe("1");
+  expect(url.searchParams.get("b")).toBe("2");
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - getFetchClient deep merges defaultRequestOptions", async () => {
+test("FetchClientProvider - getFetchClient deep merges defaultRequestOptions", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/users").reply(200, []);
@@ -266,15 +263,15 @@ Deno.test("FetchClientProvider - getFetchClient deep merges defaultRequestOption
 
   const request = mocks.history.get[0];
   const url = new URL(request.url);
-  assertEquals(request.headers.get("X-Provider"), "provider");
-  assertEquals(request.headers.get("X-Client"), "client");
-  assertEquals(url.searchParams.get("source"), "provider");
-  assertEquals(url.searchParams.get("scope"), "client");
+  expect(request.headers.get("X-Provider")).toBe("provider");
+  expect(request.headers.get("X-Client")).toBe("client");
+  expect(url.searchParams.get("source")).toBe("provider");
+  expect(url.searchParams.get("scope")).toBe("client");
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - setModelValidator validates request data", async () => {
+test("FetchClientProvider - setModelValidator validates request data", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onPost("/api/users").reply(201, { id: 1 });
@@ -294,22 +291,22 @@ Deno.test("FetchClientProvider - setModelValidator validates request data", asyn
 
   // Invalid data - should fail validation
   const response1 = await client.postJSON("/api/users", { name: "Test" });
-  assertEquals(response1.ok, false);
-  assertEquals(response1.problem.errors.email?.[0], "Email is required");
-  assertEquals(mocks.history.post.length, 0); // No request made
+  expect(response1.ok).toBe(false);
+  expect(response1.problem.errors.email?.[0]).toBe("Email is required");
+  expect(mocks.history.post.length).toBe(0); // No request made
 
   // Valid data - should succeed
   const response2 = await client.postJSON("/api/users", {
     name: "Test",
     email: "test@example.com",
   });
-  assertEquals(response2.ok, true);
-  assertEquals(mocks.history.post.length, 1);
+  expect(response2.ok).toBe(true);
+  expect(mocks.history.post.length).toBe(1);
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - custom fetch function", async () => {
+test("FetchClientProvider - custom fetch function", async () => {
   let fetchCalled = false;
   const customFetch: typeof fetch = (_input, _init) => {
     fetchCalled = true;
@@ -326,11 +323,11 @@ Deno.test("FetchClientProvider - custom fetch function", async () => {
 
   const response = await client.getJSON("/api/data");
 
-  assertEquals(fetchCalled, true);
-  assertEquals(response.data, { custom: true });
+  expect(fetchCalled).toBe(true);
+  expect(response.data).toEqual({ custom: true });
 });
 
-Deno.test("FetchClientProvider - fetch setter works", async () => {
+test("FetchClientProvider - fetch setter works", async () => {
   const provider = new FetchClientProvider();
 
   let fetchCalled = false;
@@ -347,11 +344,11 @@ Deno.test("FetchClientProvider - fetch setter works", async () => {
   const client = provider.getFetchClient();
   const response = await client.getJSON("/api/data");
 
-  assertEquals(fetchCalled, true);
-  assertEquals(response.data, { updated: true });
+  expect(fetchCalled).toBe(true);
+  expect(response.data).toEqual({ updated: true });
 });
 
-Deno.test("FetchClientProvider - useRateLimit enables rate limiting", async () => {
+test("FetchClientProvider - useRateLimit enables rate limiting", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(200, { value: 1 });
@@ -363,7 +360,7 @@ Deno.test("FetchClientProvider - useRateLimit enables rate limiting", async () =
     throwOnRateLimit: false,
   });
 
-  assertExists(provider.rateLimiter);
+  expect(provider.rateLimiter).toBeDefined();
 
   const client = provider.getFetchClient();
 
@@ -374,19 +371,19 @@ Deno.test("FetchClientProvider - useRateLimit enables rate limiting", async () =
   const response2 = await client.getJSON("/api/data", {
     expectedStatusCodes: [429],
   });
-  assertEquals(response1.status, 200);
-  assertEquals(response2.status, 200);
+  expect(response1.status).toBe(200);
+  expect(response2.status).toBe(200);
 
   // Third request should be rate limited
   const response3 = await client.getJSON("/api/data", {
     expectedStatusCodes: [429],
   });
-  assertEquals(response3.status, 429);
+  expect(response3.status).toBe(429);
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - removeRateLimit disables rate limiting", async () => {
+test("FetchClientProvider - removeRateLimit disables rate limiting", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(200, { value: 1 });
@@ -407,21 +404,21 @@ Deno.test("FetchClientProvider - removeRateLimit disables rate limiting", async 
   const response2 = await client.getJSON("/api/data", {
     expectedStatusCodes: [429],
   });
-  assertEquals(response2.status, 429);
+  expect(response2.status).toBe(429);
 
   // Remove rate limiting
   provider.removeRateLimit();
-  assertEquals(provider.rateLimiter, undefined);
+  expect(provider.rateLimiter).toBeUndefined();
 
   // Now requests should work (need new client to pick up changes)
   const client2 = provider.getFetchClient();
   const response3 = await client2.getJSON("/api/data");
-  assertEquals(response3.status, 200);
+  expect(response3.status).toBe(200);
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - useCircuitBreaker enables circuit breaker", async () => {
+test("FetchClientProvider - useCircuitBreaker enables circuit breaker", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(500, { error: "Server error" });
@@ -432,7 +429,7 @@ Deno.test("FetchClientProvider - useCircuitBreaker enables circuit breaker", asy
     openDurationMs: 30000,
   });
 
-  assertExists(provider.circuitBreaker);
+  expect(provider.circuitBreaker).toBeDefined();
 
   const client = provider.getFetchClient();
 
@@ -441,19 +438,19 @@ Deno.test("FetchClientProvider - useCircuitBreaker enables circuit breaker", asy
   await client.getJSON("/api/data", { expectedStatusCodes: [500, 503] });
 
   // Circuit should be open now
-  assertEquals(provider.circuitBreaker!.getState("/api/data"), "OPEN");
+  expect(provider.circuitBreaker!.getState("/api/data")).toBe("OPEN");
 
   // Next request should return 503 without hitting the API
   const response = await client.getJSON("/api/data", {
     expectedStatusCodes: [503],
   });
-  assertEquals(response.status, 503);
-  assertEquals(mocks.history.get.length, 2); // Only 2 requests made
+  expect(response.status).toBe(503);
+  expect(mocks.history.get.length).toBe(2); // Only 2 requests made
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - removeCircuitBreaker disables circuit breaker", async () => {
+test("FetchClientProvider - removeCircuitBreaker disables circuit breaker", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(500, { error: "Server error" });
@@ -472,19 +469,19 @@ Deno.test("FetchClientProvider - removeCircuitBreaker disables circuit breaker",
 
   // Remove circuit breaker
   provider.removeCircuitBreaker();
-  assertEquals(provider.circuitBreaker, undefined);
+  expect(provider.circuitBreaker).toBeUndefined();
 
   // Now requests should go through (need new client)
   const client2 = provider.getFetchClient();
   const response = await client2.getJSON("/api/data", {
     expectedStatusCodes: [500],
   });
-  assertEquals(response.status, 500); // Actual response, not 503
+  expect(response.status).toBe(500); // Actual response, not 503
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - getFetchClient inherits provider middleware", async () => {
+test("FetchClientProvider - getFetchClient inherits provider middleware", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(200, { value: 1 });
@@ -500,12 +497,12 @@ Deno.test("FetchClientProvider - getFetchClient inherits provider middleware", a
   const client = provider.getFetchClient();
   await client.getJSON("/api/data");
 
-  assertEquals(logs, ["provider"]);
+  expect(logs).toEqual(["provider"]);
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - client.use() adds to provider middleware", async () => {
+test("FetchClientProvider - client.use() adds to provider middleware", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(200, { value: 1 });
@@ -526,29 +523,29 @@ Deno.test("FetchClientProvider - client.use() adds to provider middleware", asyn
   await client.getJSON("/api/data");
 
   // Both middleware run - provider first, then client
-  assertEquals(logs, ["provider", "client"]);
+  expect(logs).toEqual(["provider", "client"]);
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - counter is accessible", () => {
+test("FetchClientProvider - counter is accessible", () => {
   const provider = new FetchClientProvider();
 
-  assertExists(provider.counter);
-  assertEquals(provider.counter.count, 0);
+  expect(provider.counter).toBeDefined();
+  expect(provider.counter.count).toBe(0);
 });
 
-Deno.test("FetchClientProvider - options getter and setter work", () => {
+test("FetchClientProvider - options getter and setter work", () => {
   const provider = new FetchClientProvider();
 
   const originalOptions = provider.options;
-  assertExists(originalOptions);
+  expect(originalOptions).toBeDefined();
 
   provider.options = { baseUrl: "https://test.com" };
-  assertEquals(provider.options.baseUrl, "https://test.com");
+  expect(provider.options.baseUrl).toBe("https://test.com");
 });
 
-Deno.test("FetchClientProvider - usePerDomainRateLimit groups by domain", async () => {
+test("FetchClientProvider - usePerDomainRateLimit groups by domain", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet(/.*/).reply(200, { value: 1 });
@@ -566,24 +563,24 @@ Deno.test("FetchClientProvider - usePerDomainRateLimit groups by domain", async 
   const r1 = await client.getJSON("https://domain1.com/api/data", {
     expectedStatusCodes: [429],
   });
-  assertEquals(r1.status, 200);
+  expect(r1.status).toBe(200);
 
   // Second request to domain1 is rate limited
   const r2 = await client.getJSON("https://domain1.com/api/other", {
     expectedStatusCodes: [429],
   });
-  assertEquals(r2.status, 429);
+  expect(r2.status).toBe(429);
 
   // First request to domain2 succeeds (different domain)
   const r3 = await client.getJSON("https://domain2.com/api/data", {
     expectedStatusCodes: [429],
   });
-  assertEquals(r3.status, 200);
+  expect(r3.status).toBe(200);
 
   mocks.restore();
 });
 
-Deno.test("FetchClientProvider - usePerDomainCircuitBreaker isolates domains", async () => {
+test("FetchClientProvider - usePerDomainCircuitBreaker isolates domains", async () => {
   const provider = new FetchClientProvider();
   const mocks = new MockRegistry();
   mocks.onGet("https://failing.com/api").reply(500, { error: "fail" });
@@ -606,11 +603,11 @@ Deno.test("FetchClientProvider - usePerDomainCircuitBreaker isolates domains", a
   const r1 = await client.getJSON("https://failing.com/api", {
     expectedStatusCodes: [503],
   });
-  assertEquals(r1.status, 503);
+  expect(r1.status).toBe(503);
 
   // working.com should still work (separate circuit)
   const r2 = await client.getJSON("https://working.com/api");
-  assertEquals(r2.status, 200);
+  expect(r2.status).toBe(200);
 
   mocks.restore();
 });

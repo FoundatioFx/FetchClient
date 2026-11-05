@@ -1,9 +1,9 @@
-import { assert, assertEquals, assertRejects } from "@std/assert";
-import { FetchClient } from "../FetchClient.ts";
-import { FetchClientProvider } from "../FetchClientProvider.ts";
-import { MockRegistry } from "../mocks/MockRegistry.ts";
+import { assert, expect, test } from "vite-plus/test";
+import { FetchClient } from "../src/FetchClient.ts";
+import { FetchClientProvider } from "../src/FetchClientProvider.ts";
+import { MockRegistry } from "../src/mocks/MockRegistry.ts";
 
-Deno.test("MockRegistry - basic GET mock", async () => {
+test("MockRegistry - basic GET mock", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/users").reply(200, [{ id: 1, name: "Alice" }]);
 
@@ -15,11 +15,11 @@ Deno.test("MockRegistry - basic GET mock", async () => {
     "https://example.com/api/users",
   );
 
-  assertEquals(response.status, 200);
-  assertEquals(response.data, [{ id: 1, name: "Alice" }]);
+  expect(response.status).toBe(200);
+  expect(response.data).toEqual([{ id: 1, name: "Alice" }]);
 });
 
-Deno.test("MockRegistry - basic POST mock", async () => {
+test("MockRegistry - basic POST mock", async () => {
   const mocks = new MockRegistry();
   mocks.onPost("/api/users").reply(201, { id: 2, name: "Bob" });
 
@@ -32,11 +32,11 @@ Deno.test("MockRegistry - basic POST mock", async () => {
     { name: "Bob" },
   );
 
-  assertEquals(response.status, 201);
-  assertEquals(response.data, { id: 2, name: "Bob" });
+  expect(response.status).toBe(201);
+  expect(response.data).toEqual({ id: 2, name: "Bob" });
 });
 
-Deno.test("MockRegistry - PUT mock", async () => {
+test("MockRegistry - PUT mock", async () => {
   const mocks = new MockRegistry();
   mocks.onPut("/api/users/1").reply(200, { id: 1, name: "Updated" });
 
@@ -49,11 +49,11 @@ Deno.test("MockRegistry - PUT mock", async () => {
     { name: "Updated" },
   );
 
-  assertEquals(response.status, 200);
-  assertEquals(response.data, { id: 1, name: "Updated" });
+  expect(response.status).toBe(200);
+  expect(response.data).toEqual({ id: 1, name: "Updated" });
 });
 
-Deno.test("MockRegistry - PATCH mock", async () => {
+test("MockRegistry - PATCH mock", async () => {
   const mocks = new MockRegistry();
   mocks.onPatch("/api/users/1").reply(200, { id: 1, name: "Patched" });
 
@@ -66,11 +66,11 @@ Deno.test("MockRegistry - PATCH mock", async () => {
     { name: "Patched" },
   );
 
-  assertEquals(response.status, 200);
-  assertEquals(response.data, { id: 1, name: "Patched" });
+  expect(response.status).toBe(200);
+  expect(response.data).toEqual({ id: 1, name: "Patched" });
 });
 
-Deno.test("MockRegistry - DELETE mock", async () => {
+test("MockRegistry - DELETE mock", async () => {
   const mocks = new MockRegistry();
   mocks.onDelete("/api/users/1").reply(204);
 
@@ -80,10 +80,10 @@ Deno.test("MockRegistry - DELETE mock", async () => {
   const client = provider.getFetchClient();
   const response = await client.delete("https://example.com/api/users/1");
 
-  assertEquals(response.status, 204);
+  expect(response.status).toBe(204);
 });
 
-Deno.test("MockRegistry - onAny matches any method", async () => {
+test("MockRegistry - onAny matches any method", async () => {
   const mocks = new MockRegistry();
   mocks.onAny("/api/anything").reply(200, { success: true });
 
@@ -93,16 +93,13 @@ Deno.test("MockRegistry - onAny matches any method", async () => {
   const client = provider.getFetchClient();
 
   const getResponse = await client.getJSON("https://example.com/api/anything");
-  assertEquals(getResponse.status, 200);
+  expect(getResponse.status).toBe(200);
 
-  const postResponse = await client.postJSON(
-    "https://example.com/api/anything",
-    {},
-  );
-  assertEquals(postResponse.status, 200);
+  const postResponse = await client.postJSON("https://example.com/api/anything", {});
+  expect(postResponse.status).toBe(200);
 });
 
-Deno.test("MockRegistry - regex URL matching", async () => {
+test("MockRegistry - regex URL matching", async () => {
   const mocks = new MockRegistry();
   mocks.onGet(/\/api\/users\/\d+/).reply(200, { id: 1, name: "User" });
 
@@ -112,13 +109,13 @@ Deno.test("MockRegistry - regex URL matching", async () => {
   const client = provider.getFetchClient();
 
   const response1 = await client.getJSON("https://example.com/api/users/123");
-  assertEquals(response1.status, 200);
+  expect(response1.status).toBe(200);
 
   const response2 = await client.getJSON("https://example.com/api/users/456");
-  assertEquals(response2.status, 200);
+  expect(response2.status).toBe(200);
 });
 
-Deno.test("MockRegistry - replyOnce removes mock after first match", async () => {
+test("MockRegistry - replyOnce removes mock after first match", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/users").replyOnce(200, [{ id: 1 }]);
   mocks.onGet("/api/users").reply(200, [{ id: 2 }]);
@@ -129,17 +126,21 @@ Deno.test("MockRegistry - replyOnce removes mock after first match", async () =>
   const client = provider.getFetchClient();
 
   const response1 = await client.getJSON("https://example.com/api/users");
-  assertEquals(response1.data, [{ id: 1 }]);
+  expect(response1.data).toEqual([{ id: 1 }]);
 
   const response2 = await client.getJSON("https://example.com/api/users");
-  assertEquals(response2.data, [{ id: 2 }]);
+  expect(response2.data).toEqual([{ id: 2 }]);
 });
 
-Deno.test("MockRegistry - custom headers in response", async () => {
+test("MockRegistry - custom headers in response", async () => {
   const mocks = new MockRegistry();
-  mocks.onGet("/api/users").reply(200, { data: "test" }, {
-    "X-Custom-Header": "custom-value",
-  });
+  mocks.onGet("/api/users").reply(
+    200,
+    { data: "test" },
+    {
+      "X-Custom-Header": "custom-value",
+    },
+  );
 
   const provider = new FetchClientProvider();
   mocks.install(provider);
@@ -147,10 +148,10 @@ Deno.test("MockRegistry - custom headers in response", async () => {
   const client = provider.getFetchClient();
   const response = await client.getJSON("https://example.com/api/users");
 
-  assertEquals(response.headers.get("X-Custom-Header"), "custom-value");
+  expect(response.headers.get("X-Custom-Header")).toBe("custom-value");
 });
 
-Deno.test("MockRegistry - networkError throws TypeError", async () => {
+test("MockRegistry - networkError throws TypeError", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/flaky").networkError("Connection refused");
 
@@ -159,14 +160,12 @@ Deno.test("MockRegistry - networkError throws TypeError", async () => {
 
   const client = provider.getFetchClient();
 
-  await assertRejects(
-    () => client.getJSON("https://example.com/api/flaky"),
-    TypeError,
-    "Connection refused",
-  );
+  const request = client.getJSON("https://example.com/api/flaky");
+  await expect(request).rejects.toThrow(TypeError);
+  await expect(request).rejects.toThrow("Connection refused");
 });
 
-Deno.test("MockRegistry - timeout returns 408 response", async () => {
+test("MockRegistry - timeout returns 408 response", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/slow").timeout();
 
@@ -180,11 +179,11 @@ Deno.test("MockRegistry - timeout returns 408 response", async () => {
     expectedStatusCodes: [408],
   });
 
-  assertEquals(response.status, 408);
-  assertEquals(response.problem.title, "Request Timeout");
+  expect(response.status).toBe(408);
+  expect(response.problem.title).toBe("Request Timeout");
 });
 
-Deno.test("MockRegistry - timeout throws when using fetch directly", async () => {
+test("MockRegistry - timeout throws when using fetch directly", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/slow").timeout();
 
@@ -197,11 +196,11 @@ Deno.test("MockRegistry - timeout throws when using fetch directly", async () =>
     throw new Error("Should have thrown");
   } catch (e) {
     assert(e instanceof DOMException);
-    assertEquals(e.name, "TimeoutError");
+    expect(e.name).toBe("TimeoutError");
   }
 });
 
-Deno.test("MockRegistry - delay response", async () => {
+test("MockRegistry - delay response", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/delayed").delay(50).reply(200, { delayed: true });
 
@@ -215,37 +214,34 @@ Deno.test("MockRegistry - delay response", async () => {
   const elapsed = Date.now() - start;
   const minimumExpectedDelayMs = 45;
 
-  assertEquals(response.data, { delayed: true });
-  assert(
-    elapsed >= minimumExpectedDelayMs,
+  expect(response.data).toEqual({ delayed: true });
+  expect(
+    elapsed,
     `Expected delay of at least ${minimumExpectedDelayMs}ms, got ${elapsed}ms`,
-  );
+  ).toBeGreaterThanOrEqual(minimumExpectedDelayMs);
 });
 
-Deno.test("MockRegistry - withHeaders conditional matching", async () => {
+test("MockRegistry - withHeaders conditional matching", async () => {
   const mocks = new MockRegistry();
-  mocks.onGet("/api/users")
-    .withHeaders({ "X-Admin": "true" })
-    .reply(200, { admin: true });
+  mocks.onGet("/api/users").withHeaders({ "X-Admin": "true" }).reply(200, { admin: true });
   mocks.onGet("/api/users").reply(200, { admin: false });
 
   const provider = new FetchClientProvider();
   mocks.install(provider);
 
   // Use fetch directly to test header matching without FetchClient's header merging
-  const adminResponse = await provider.fetch!(
-    "https://example.com/api/users",
-    { headers: { "X-Admin": "true" } },
-  );
+  const adminResponse = await provider.fetch!("https://example.com/api/users", {
+    headers: { "X-Admin": "true" },
+  });
   const adminData = await adminResponse.json();
-  assertEquals(adminData, { admin: true });
+  expect(adminData).toEqual({ admin: true });
 
   const normalResponse = await provider.fetch!("https://example.com/api/users");
   const normalData = await normalResponse.json();
-  assertEquals(normalData, { admin: false });
+  expect(normalData).toEqual({ admin: false });
 });
 
-Deno.test("MockRegistry - history records requests", async () => {
+test("MockRegistry - history records requests", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/users").reply(200, []);
   mocks.onPost("/api/users").reply(201, {});
@@ -259,12 +255,12 @@ Deno.test("MockRegistry - history records requests", async () => {
   await client.postJSON("https://example.com/api/users", { name: "Test" });
   await client.getJSON("https://example.com/api/users");
 
-  assertEquals(mocks.history.get.length, 2);
-  assertEquals(mocks.history.post.length, 1);
-  assertEquals(mocks.history.all.length, 3);
+  expect(mocks.history.get.length).toBe(2);
+  expect(mocks.history.post.length).toBe(1);
+  expect(mocks.history.all.length).toBe(3);
 });
 
-Deno.test("MockRegistry - reset clears mocks and history", async () => {
+test("MockRegistry - reset clears mocks and history", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/users").reply(200, []);
 
@@ -274,14 +270,14 @@ Deno.test("MockRegistry - reset clears mocks and history", async () => {
   const client = provider.getFetchClient();
   await client.getJSON("https://example.com/api/users");
 
-  assertEquals(mocks.history.all.length, 1);
+  expect(mocks.history.all.length).toBe(1);
 
   mocks.reset();
 
-  assertEquals(mocks.history.all.length, 0);
+  expect(mocks.history.all.length).toBe(0);
 });
 
-Deno.test("MockRegistry - resetMocks keeps history", async () => {
+test("MockRegistry - resetMocks keeps history", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/users").reply(200, []);
 
@@ -293,10 +289,10 @@ Deno.test("MockRegistry - resetMocks keeps history", async () => {
 
   mocks.resetMocks();
 
-  assertEquals(mocks.history.all.length, 1);
+  expect(mocks.history.all.length).toBe(1);
 });
 
-Deno.test("MockRegistry - resetHistory keeps mocks", async () => {
+test("MockRegistry - resetHistory keeps mocks", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/users").reply(200, [{ id: 1 }]);
 
@@ -308,14 +304,14 @@ Deno.test("MockRegistry - resetHistory keeps mocks", async () => {
 
   mocks.resetHistory();
 
-  assertEquals(mocks.history.all.length, 0);
+  expect(mocks.history.all.length).toBe(0);
 
   // Mock should still work
   const response = await client.getJSON("https://example.com/api/users");
-  assertEquals(response.data, [{ id: 1 }]);
+  expect(response.data).toEqual([{ id: 1 }]);
 });
 
-Deno.test("MockRegistry - install on FetchClient uses provider", async () => {
+test("MockRegistry - install on FetchClient uses provider", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/users").reply(200, [{ id: 1 }]);
 
@@ -323,10 +319,10 @@ Deno.test("MockRegistry - install on FetchClient uses provider", async () => {
   mocks.install(client);
 
   const response = await client.getJSON("https://example.com/api/users");
-  assertEquals(response.data, [{ id: 1 }]);
+  expect(response.data).toEqual([{ id: 1 }]);
 });
 
-Deno.test("MockRegistry - throws if already installed", () => {
+test("MockRegistry - throws if already installed", () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/users").reply(200, []);
 
@@ -339,16 +335,13 @@ Deno.test("MockRegistry - throws if already installed", () => {
     mocks.install(provider2);
     throw new Error("Should have thrown");
   } catch (e) {
-    assertEquals(
-      (e as Error).message,
-      "MockRegistry is already installed. Call restore() first.",
-    );
+    expect((e as Error).message).toBe("MockRegistry is already installed. Call restore() first.");
   }
 
   mocks.restore();
 });
 
-Deno.test("MockRegistry - restore is idempotent", () => {
+test("MockRegistry - restore is idempotent", () => {
   const mocks = new MockRegistry();
   const provider = new FetchClientProvider();
   mocks.install(provider);
@@ -357,12 +350,15 @@ Deno.test("MockRegistry - restore is idempotent", () => {
   mocks.restore(); // Should not throw
 });
 
-Deno.test("MockRegistry - chaining multiple mocks", async () => {
+test("MockRegistry - chaining multiple mocks", async () => {
   const mocks = new MockRegistry();
   mocks
-    .onGet("/api/users").reply(200, [{ id: 1 }])
-    .onPost("/api/users").reply(201, { id: 2 })
-    .onDelete("/api/users/1").reply(204);
+    .onGet("/api/users")
+    .reply(200, [{ id: 1 }])
+    .onPost("/api/users")
+    .reply(201, { id: 2 })
+    .onDelete("/api/users/1")
+    .reply(204);
 
   const provider = new FetchClientProvider();
   mocks.install(provider);
@@ -370,21 +366,16 @@ Deno.test("MockRegistry - chaining multiple mocks", async () => {
   const client = provider.getFetchClient();
 
   const getResponse = await client.getJSON("https://example.com/api/users");
-  assertEquals(getResponse.status, 200);
+  expect(getResponse.status).toBe(200);
 
-  const postResponse = await client.postJSON(
-    "https://example.com/api/users",
-    {},
-  );
-  assertEquals(postResponse.status, 201);
+  const postResponse = await client.postJSON("https://example.com/api/users", {});
+  expect(postResponse.status).toBe(201);
 
-  const deleteResponse = await client.delete(
-    "https://example.com/api/users/1",
-  );
-  assertEquals(deleteResponse.status, 204);
+  const deleteResponse = await client.delete("https://example.com/api/users/1");
+  expect(deleteResponse.status).toBe(204);
 });
 
-Deno.test("MockRegistry - works with baseUrl", async () => {
+test("MockRegistry - works with baseUrl", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/users").reply(200, [{ id: 1 }]);
 
@@ -395,11 +386,11 @@ Deno.test("MockRegistry - works with baseUrl", async () => {
   const client = provider.getFetchClient();
   const response = await client.getJSON("/users");
 
-  assertEquals(response.status, 200);
-  assertEquals(response.data, [{ id: 1 }]);
+  expect(response.status).toBe(200);
+  expect(response.data).toEqual([{ id: 1 }]);
 });
 
-Deno.test("MockRegistry - no data returns null body", async () => {
+test("MockRegistry - no data returns null body", async () => {
   const mocks = new MockRegistry();
   mocks.onDelete("/api/users/1").reply(204);
 
@@ -409,29 +400,29 @@ Deno.test("MockRegistry - no data returns null body", async () => {
   const client = provider.getFetchClient();
   const response = await client.delete("https://example.com/api/users/1");
 
-  assertEquals(response.status, 204);
-  assertEquals(await response.text(), "");
+  expect(response.status).toBe(204);
+  expect(await response.text()).toBe("");
 });
 
-Deno.test("MockRegistry - fetch getter for standalone use", async () => {
+test("MockRegistry - fetch getter for standalone use", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/api/data").reply(200, { value: 42 });
   mocks.onPost("/api/data").reply(201, { created: true });
 
   // Use mocks.fetch directly without installing
   const getResponse = await mocks.fetch("https://example.com/api/data");
-  assertEquals(getResponse.status, 200);
-  assertEquals(await getResponse.json(), { value: 42 });
+  expect(getResponse.status).toBe(200);
+  expect(await getResponse.json()).toEqual({ value: 42 });
 
   const postResponse = await mocks.fetch("https://example.com/api/data", {
     method: "POST",
     body: JSON.stringify({ input: "test" }),
   });
-  assertEquals(postResponse.status, 201);
-  assertEquals(await postResponse.json(), { created: true });
+  expect(postResponse.status).toBe(201);
+  expect(await postResponse.json()).toEqual({ created: true });
 
   // History should still be recorded
-  assertEquals(mocks.history.all.length, 2);
-  assertEquals(mocks.history.get.length, 1);
-  assertEquals(mocks.history.post.length, 1);
+  expect(mocks.history.all.length).toBe(2);
+  expect(mocks.history.get.length).toBe(1);
+  expect(mocks.history.post.length).toBe(1);
 });

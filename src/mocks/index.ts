@@ -18,7 +18,7 @@
  * mocks.restore();
  * ```
  *
- * @module
+ * @module @foundatiofx/fetchclient/mocks
  */
 
 export { MockRegistry } from "./MockRegistry.ts";

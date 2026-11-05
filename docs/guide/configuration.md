@@ -32,11 +32,7 @@ Configure your app once at startup:
 
 ```ts
 // app-init.ts
-import {
-  setAccessTokenFunc,
-  setBaseUrl,
-  useMiddleware,
-} from "@foundatiofx/fetchclient";
+import { setAccessTokenFunc, setBaseUrl, useMiddleware } from "@foundatiofx/fetchclient";
 
 setBaseUrl("https://api.example.com");
 
@@ -126,10 +122,7 @@ usePerDomainRateLimit({
 ### Circuit Breaker
 
 ```ts
-import {
-  useCircuitBreaker,
-  usePerDomainCircuitBreaker,
-} from "@foundatiofx/fetchclient";
+import { useCircuitBreaker, usePerDomainCircuitBreaker } from "@foundatiofx/fetchclient";
 
 // Global circuit breaker
 useCircuitBreaker({
@@ -224,9 +217,7 @@ setAccessTokenFunc(() => localStorage.getItem("token"));
 useMiddleware(async (ctx, next) => {
   const start = Date.now();
   await next();
-  console.log(
-    `${ctx.request.url}: ${ctx.response?.status} (${Date.now() - start}ms)`,
-  );
+  console.log(`${ctx.request.url}: ${ctx.response?.status} (${Date.now() - start}ms)`);
 });
 
 // Resilience
@@ -241,12 +232,7 @@ getCurrentProvider().loading.on((isLoading) => {
 
 ```ts
 // user-service.ts
-import {
-  deleteJSON,
-  getCache,
-  getJSON,
-  postJSON,
-} from "@foundatiofx/fetchclient";
+import { deleteJSON, getCache, getJSON, postJSON } from "@foundatiofx/fetchclient";
 
 export async function getUsers() {
   const { data } = await getJSON<User[]>("/users", {
@@ -272,6 +258,8 @@ export async function deleteUser(id: number) {
 ## Advanced: Custom Providers
 
 For advanced use cases like connecting to multiple APIs with different
-configurations, you can create separate `FetchClientProvider` instances. See the
-[API reference](https://jsr.io/@foundatiofx/fetchclient/doc/~/FetchClientProvider)
+configurations, you can create separate `FetchClientProvider` instances. Each
+provider has its own options, middleware, and cache, and
+`provider.getFetchClient()` returns clients that use them. See the
+[`FetchClientProvider` API reference](/api/@foundatiofx/fetchclient/classes/FetchClientProvider)
 for details.

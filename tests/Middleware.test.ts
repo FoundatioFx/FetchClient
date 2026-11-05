@@ -1,11 +1,7 @@
-import { assert, assertEquals, assertFalse } from "@std/assert";
-import {
-  FetchClient,
-  type FetchClientContext,
-  ProblemDetails,
-} from "../../mod.ts";
-import { FetchClientProvider } from "../FetchClientProvider.ts";
-import { MockRegistry } from "../mocks/MockRegistry.ts";
+import { assert, expect, test } from "vite-plus/test";
+import { FetchClient, type FetchClientContext, ProblemDetails } from "../src/index.ts";
+import { FetchClientProvider } from "../src/FetchClientProvider.ts";
+import { MockRegistry } from "../src/mocks/MockRegistry.ts";
 
 type Todo = {
   userId: number;
@@ -14,7 +10,7 @@ type Todo = {
   completed: boolean;
 };
 
-Deno.test("can use provider middleware", async () => {
+test("can use provider middleware", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
@@ -28,31 +24,29 @@ Deno.test("can use provider middleware", async () => {
 
   let called = false;
   provider.useMiddleware(async (ctx, next) => {
-    assert(ctx);
-    assert(ctx.request);
-    assertFalse(ctx.response);
+    expect(ctx).toBeTruthy();
+    expect(ctx.request).toBeTruthy();
+    expect(ctx.response).toBeFalsy();
     called = true;
     await next();
     assert(ctx.response);
   });
 
   const client = provider.getFetchClient();
-  assert(client);
+  expect(client).toBeTruthy();
 
-  const r = await client.getJSON<Todo>(
-    "https://jsonplaceholder.typicode.com/todos/1",
-  );
-  assert(r.ok);
-  assertEquals(r.status, 200);
+  const r = await client.getJSON<Todo>("https://jsonplaceholder.typicode.com/todos/1");
+  expect(r.ok).toBe(true);
+  expect(r.status).toBe(200);
   assert(r.data);
-  assert(called);
-  assertEquals(r.data!.userId, 1);
-  assertEquals(r.data!.id, 1);
-  assertEquals(r.data!.title, "A random title");
-  assertEquals(r.data!.completed, false);
+  expect(called).toBe(true);
+  expect(r.data!.userId).toBe(1);
+  expect(r.data!.id).toBe(1);
+  expect(r.data!.title).toBe("A random title");
+  expect(r.data!.completed).toBe(false);
 });
 
-Deno.test("can use client middleware", async () => {
+test("can use client middleware", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
@@ -66,24 +60,22 @@ Deno.test("can use client middleware", async () => {
 
   let called = false;
   client.use(async (ctx, next) => {
-    assert(ctx);
-    assert(ctx.request);
-    assertFalse(ctx.response);
+    expect(ctx).toBeTruthy();
+    expect(ctx.request).toBeTruthy();
+    expect(ctx.response).toBeFalsy();
     called = true;
     await next();
     assert(ctx.response);
   });
 
-  const r = await client.getJSON<Todo>(
-    "https://jsonplaceholder.typicode.com/todos/1",
-  );
+  const r = await client.getJSON<Todo>("https://jsonplaceholder.typicode.com/todos/1");
 
-  assert(r.ok);
-  assertEquals(r.status, 200);
-  assert(called);
+  expect(r.ok).toBe(true);
+  expect(r.status).toBe(200);
+  expect(called).toBe(true);
 });
 
-Deno.test("middleware can modify context", async () => {
+test("middleware can modify context", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/todos/1").reply(200, {
     userId: 1,
@@ -95,10 +87,7 @@ Deno.test("middleware can modify context", async () => {
   const client = new FetchClient();
   mocks.install(client);
 
-  function customMiddleware(
-    ctx: FetchClientContext,
-    next: () => Promise<void>,
-  ) {
+  function customMiddleware(ctx: FetchClientContext, next: () => Promise<void>) {
     ctx.customValue = "middleware-value";
     return next();
   }
@@ -111,10 +100,10 @@ Deno.test("middleware can modify context", async () => {
   });
 
   await client.getJSON("https://example.com/todos/1");
-  assertEquals(contextValue, "middleware-value");
+  expect(contextValue).toBe("middleware-value");
 });
 
-Deno.test("middleware chain executes in order", async () => {
+test("middleware chain executes in order", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/data").reply(200, { value: 1 });
 
@@ -139,7 +128,7 @@ Deno.test("middleware chain executes in order", async () => {
 
   await client.getJSON("https://example.com/data");
 
-  assertEquals(executionOrder, [
+  expect(executionOrder).toEqual([
     "provider-before",
     "client-before",
     "client-after",
@@ -147,7 +136,7 @@ Deno.test("middleware chain executes in order", async () => {
   ]);
 });
 
-Deno.test("will validate postJSON model with provider model validator", async () => {
+test("will validate postJSON model with provider model validator", async () => {
   const mocks = new MockRegistry();
   mocks.onPost("/todos/1").reply(200, { success: true });
 
@@ -165,39 +154,32 @@ Deno.test("will validate postJSON model with provider model validator", async ()
     password: "test",
   };
 
-  // deno-lint-ignore require-await
   provider.setModelValidator(async (data: object | null) => {
     const problem = new ProblemDetails();
     const d = data as { password: string };
     if (d?.password?.length < 6) {
-      problem.errors.password = [
-        "Password must be longer than or equal to 6 characters.",
-      ];
+      problem.errors.password = ["Password must be longer than or equal to 6 characters."];
     }
     return problem;
   });
 
   const client = provider.getFetchClient();
-  const response = await client.postJSON(
-    "https://jsonplaceholder.typicode.com/todos/1",
-    data,
-  );
+  const response = await client.postJSON("https://jsonplaceholder.typicode.com/todos/1", data);
 
-  assertEquals(response.ok, false);
-  assertEquals(fetchCalled, false);
-  assertEquals(response.status, 422);
-  assertFalse(response.data);
-  assert(response.problem);
-  assert(response.problem!.errors);
+  expect(response.ok).toBe(false);
+  expect(fetchCalled).toBe(false);
+  expect(response.status).toBe(422);
+  expect(response.data).toBeFalsy();
+  expect(response.problem).toBeTruthy();
+  expect(response.problem!.errors).toBeTruthy();
   assert(response.problem!.errors.password);
-  assertEquals(response.problem!.errors.password!.length, 1);
-  assertEquals(
-    response.problem!.errors.password![0],
+  expect(response.problem!.errors.password!.length).toBe(1);
+  expect(response.problem!.errors.password![0]).toBe(
     "Password must be longer than or equal to 6 characters.",
   );
 });
 
-Deno.test("can use kitchen sink options", async () => {
+test("can use kitchen sink options", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/products/search").reply(200, {
     products: [{ id: 1 }, { id: 2 }, { id: 3 }],
@@ -225,18 +207,18 @@ Deno.test("can use kitchen sink options", async () => {
     },
     middleware: [
       async (ctx, next) => {
-        assert(ctx);
-        assert(ctx.request);
-        assertFalse(ctx.response);
+        expect(ctx).toBeTruthy();
+        expect(ctx.request).toBeTruthy();
+        expect(ctx.response).toBeFalsy();
         optionsCalled = true;
         await next();
         assert(ctx.response);
       },
     ],
   }).use(async (ctx, next) => {
-    assert(ctx);
-    assert(ctx.request);
-    assertFalse(ctx.response);
+    expect(ctx).toBeTruthy();
+    expect(ctx.request).toBeTruthy();
+    expect(ctx.response).toBeFalsy();
     called = true;
     await next();
     assert(ctx.response);
@@ -247,13 +229,13 @@ Deno.test("can use kitchen sink options", async () => {
   type Products = { products: Array<{ id: number }> };
   const res = await api.getJSON<Products>("/products/search?q=x");
 
-  assertEquals(res.status, 200);
+  expect(res.status).toBe(200);
   assert(res.data?.products);
-  assert(called);
-  assert(optionsCalled);
+  expect(called).toBe(true);
+  expect(optionsCalled).toBe(true);
 });
 
-Deno.test("middleware can access response data", async () => {
+test("middleware can access response data", async () => {
   const mocks = new MockRegistry();
   mocks.onGet("/data").reply(200, { value: 42, name: "test" });
 
@@ -268,5 +250,5 @@ Deno.test("middleware can access response data", async () => {
 
   await client.getJSON("https://example.com/data");
 
-  assertEquals(responseData, { value: 42, name: "test" });
+  expect(responseData).toEqual({ value: 42, name: "test" });
 });

@@ -2,9 +2,31 @@
 
 ## Install
 
-```bash
+::: code-group
+
+```bash [npm]
 npm install @foundatiofx/fetchclient
 ```
+
+```bash [pnpm]
+pnpm add @foundatiofx/fetchclient
+```
+
+```bash [Deno]
+deno add npm:@foundatiofx/fetchclient
+```
+
+```bash [Bun]
+bun add @foundatiofx/fetchclient
+```
+
+:::
+
+::: tip Coming from JSR?
+FetchClient is published to npm only. Deno projects that used
+`jsr:@foundatiofx/fetchclient` should switch to
+`npm:@foundatiofx/fetchclient`. The API is the same.
+:::
 
 ## Quick Usage
 
@@ -106,12 +128,8 @@ setAccessTokenFunc(() => localStorage.getItem("token"));
 
 // Add middleware using fc.use() with built-in factories
 fc.use(fc.middleware.retry({ limit: 3 }));
-fc.use(
-  fc.middleware.perDomainRateLimit({ maxRequests: 100, windowSeconds: 60 }),
-);
-fc.use(
-  fc.middleware.circuitBreaker({ failureThreshold: 5, openDurationMs: 30000 }),
-);
+fc.use(fc.middleware.perDomainRateLimit({ maxRequests: 100, windowSeconds: 60 }));
+fc.use(fc.middleware.circuitBreaker({ failureThreshold: 5, openDurationMs: 30000 }));
 
 // Custom logging middleware
 fc.use(async (ctx, next) => {

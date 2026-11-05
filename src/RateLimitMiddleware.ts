@@ -18,12 +18,7 @@ export class RateLimitError extends Error {
   public readonly remainingRequests: number;
 
   constructor(resetTime: number, remainingRequests: number, message?: string) {
-    super(
-      message ||
-        `Rate limit exceeded. Try again after ${
-          new Date(resetTime).toISOString()
-        }`,
-    );
+    super(message || `Rate limit exceeded. Try again after ${new Date(resetTime).toISOString()}`);
     this.name = "RateLimitError";
     this.resetTime = resetTime;
     this.remainingRequests = remainingRequests;
@@ -92,11 +87,7 @@ export class RateLimitMiddleware {
         const remainingRequests = this.rateLimiter.getRemainingRequests(url);
 
         if (this.throwOnRateLimit) {
-          throw new RateLimitError(
-            resetTime,
-            remainingRequests,
-            this.errorMessage,
-          );
+          throw new RateLimitError(resetTime, remainingRequests, this.errorMessage);
         }
 
         // Create a 429 Too Many Requests response
@@ -120,7 +111,7 @@ export class RateLimitMiddleware {
 
         const headers = new Headers({
           "Content-Type": "application/problem+json",
-          "RateLimit": rateLimitHeader,
+          RateLimit: rateLimitHeader,
           "RateLimit-Policy": rateLimitPolicyHeader,
           // Legacy headers for backward compatibility
           "RateLimit-Limit": maxRequests.toString(),
@@ -132,10 +123,9 @@ export class RateLimitMiddleware {
         const problem = new ProblemDetails();
         problem.status = 429;
         problem.title = "Too Many Requests";
-        problem.detail = this.errorMessage ||
-          `Rate limit exceeded. Try again after ${
-            new Date(resetTime).toISOString()
-          }`;
+        problem.detail =
+          this.errorMessage ||
+          `Rate limit exceeded. Try again after ${new Date(resetTime).toISOString()}`;
 
         context.response = {
           url: context.request.url,
@@ -153,7 +143,6 @@ export class RateLimitMiddleware {
           json: () => Promise.resolve(problem),
           text: () => Promise.resolve(JSON.stringify(problem)),
           arrayBuffer: () => Promise.resolve(new ArrayBuffer(0)),
-          // @ts-ignore: New in Deno 1.44
           bytes: () => Promise.resolve(new Uint8Array()),
           blob: () => Promise.resolve(new Blob()),
           formData: () => Promise.resolve(new FormData()),
@@ -168,10 +157,7 @@ export class RateLimitMiddleware {
       await next();
 
       if (this.autoUpdateFromHeaders && context.response) {
-        this.rateLimiter.updateFromHeadersForRequest(
-          url,
-          context.response.headers,
-        );
+        this.rateLimiter.updateFromHeadersForRequest(url, context.response.headers);
       }
     };
   }

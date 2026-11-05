@@ -25,7 +25,7 @@ export interface MockDefinition {
   /** Headers that must match for this mock to apply */
   headerMatchers?: Record<string, string>;
   /** Body matcher - exact match or predicate function */
-  bodyMatcher?: unknown | ((body: unknown) => boolean);
+  bodyMatcher?: unknown;
 }
 
 /**

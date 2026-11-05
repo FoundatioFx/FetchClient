@@ -221,9 +221,7 @@ const failures = breaker.getFailureCount("https://api.example.com/users");
 const timeSinceOpen = breaker.getTimeSinceOpen("https://api.example.com/users");
 
 // Time until HALF_OPEN
-const timeUntilHalfOpen = breaker.getTimeUntilHalfOpen(
-  "https://api.example.com/users",
-);
+const timeUntilHalfOpen = breaker.getTimeUntilHalfOpen("https://api.example.com/users");
 ```
 
 ## Combined with Rate Limiting
@@ -255,11 +253,7 @@ provider.removeCircuitBreaker();
 ## Practical Example: Resilient API Client
 
 ```ts
-import {
-  CircuitOpenError,
-  FetchClientProvider,
-  RateLimitError,
-} from "@foundatiofx/fetchclient";
+import { CircuitOpenError, FetchClientProvider, RateLimitError } from "@foundatiofx/fetchclient";
 
 const provider = new FetchClientProvider();
 provider.setBaseUrl("https://api.example.com");

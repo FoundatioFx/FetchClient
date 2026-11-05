@@ -15,9 +15,7 @@ fc.use(fc.middleware.retry({ limit: 3 }));
 
 // Rate limiting
 fc.use(fc.middleware.rateLimit({ maxRequests: 100, windowSeconds: 60 }));
-fc.use(
-  fc.middleware.perDomainRateLimit({ maxRequests: 50, windowSeconds: 60 }),
-);
+fc.use(fc.middleware.perDomainRateLimit({ maxRequests: 50, windowSeconds: 60 }));
 
 // Circuit breaker for fault tolerance
 fc.use(fc.middleware.circuitBreaker({ failureThreshold: 5 }));
@@ -204,12 +202,14 @@ backoff:
 ```ts
 import fc from "@foundatiofx/fetchclient";
 
-fc.use(fc.middleware.retry({
-  limit: 3, // Max retry attempts
-  methods: ["GET", "HEAD"], // Only retry idempotent methods
-  statusCodes: [408, 429, 500, 502, 503, 504], // Status codes to retry
-  maxRetryAfter: 60, // Max seconds to wait for Retry-After header
-}));
+fc.use(
+  fc.middleware.retry({
+    limit: 3, // Max retry attempts
+    methods: ["GET", "HEAD"], // Only retry idempotent methods
+    statusCodes: [408, 429, 500, 502, 503, 504], // Status codes to retry
+    maxRetryAfter: 60, // Max seconds to wait for Retry-After header
+  }),
+);
 ```
 
 Or implement custom retry logic:
@@ -372,9 +372,7 @@ setAccessTokenFunc(() => getAuthToken());
 
 // Built-in middleware
 fc.use(fc.middleware.retry({ limit: 3 }));
-fc.use(
-  fc.middleware.perDomainRateLimit({ maxRequests: 100, windowSeconds: 60 }),
-);
+fc.use(fc.middleware.perDomainRateLimit({ maxRequests: 100, windowSeconds: 60 }));
 fc.use(fc.middleware.circuitBreaker({ failureThreshold: 5 }));
 
 // Custom logging

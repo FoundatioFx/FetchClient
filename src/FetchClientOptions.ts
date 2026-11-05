@@ -5,8 +5,6 @@ import type { FetchClientProvider } from "./FetchClientProvider.ts";
 import type { ProblemDetails } from "./ProblemDetails.ts";
 import type { RequestOptions } from "./RequestOptions.ts";
 
-type Fetch = typeof globalThis.fetch;
-
 /**
  * Fetch client options to use for making HTTP requests.
  */
@@ -31,7 +29,7 @@ export type FetchClientOptions = {
    * The fetch implementation to use for making HTTP requests.
    * If not provided, the global fetch function will be used.
    */
-  fetch?: Fetch;
+  fetch?: typeof globalThis.fetch;
 
   /**
    * An array of middleware functions to be applied to the request.

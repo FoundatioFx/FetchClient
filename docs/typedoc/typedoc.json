@@ -1,0 +1,15 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "name": "API Reference",
+  "entryPoints": ["../../src/index.ts", "../../src/mocks/index.ts"],
+  "tsconfig": "./tsconfig.json",
+  "out": "../api",
+  "docsRoot": "..",
+  "plugin": ["typedoc-plugin-markdown", "typedoc-vitepress-theme"],
+  "readme": "none",
+  "excludePrivate": true,
+  "excludeInternal": true,
+  "disableGit": true,
+  "gitRevision": "main",
+  "sourceLinkTemplate": "https://github.com/FoundatioFx/FetchClient/blob/{gitRevision}/src/{path}#L{line}"
+}

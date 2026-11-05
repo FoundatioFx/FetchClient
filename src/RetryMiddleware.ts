@@ -5,15 +5,7 @@ import type { FetchClientMiddleware } from "./FetchClientMiddleware.ts";
  * Default HTTP methods that are eligible for retry.
  * These are idempotent methods that can be safely retried without side effects.
  */
-const DEFAULT_RETRY_METHODS = [
-  "GET",
-  "HEAD",
-  "QUERY",
-  "PUT",
-  "DELETE",
-  "OPTIONS",
-  "TRACE",
-];
+const DEFAULT_RETRY_METHODS = ["GET", "HEAD", "QUERY", "PUT", "DELETE", "OPTIONS", "TRACE"];
 
 /**
  * Default HTTP status codes that trigger a retry.
@@ -80,19 +72,12 @@ export interface RetryMiddlewareOptions {
    * Custom predicate to determine if a request should be retried.
    * Called after default checks pass. Return true to retry, false to stop.
    */
-  shouldRetry?: (
-    response: Response,
-    attemptNumber: number,
-  ) => boolean | Promise<boolean>;
+  shouldRetry?: (response: Response, attemptNumber: number) => boolean | Promise<boolean>;
 
   /**
    * Callback invoked before each retry attempt.
    */
-  onRetry?: (
-    attemptNumber: number,
-    response: Response,
-    delayMs: number,
-  ) => void;
+  onRetry?: (attemptNumber: number, response: Response, delayMs: number) => void;
 }
 
 /**
@@ -120,23 +105,14 @@ export class RetryMiddleware {
     backoffLimit: number;
     jitter: number;
     delay?: (attemptNumber: number, response?: Response) => number;
-    shouldRetry?: (
-      response: Response,
-      attemptNumber: number,
-    ) => boolean | Promise<boolean>;
-    onRetry?: (
-      attemptNumber: number,
-      response: Response,
-      delayMs: number,
-    ) => void;
+    shouldRetry?: (response: Response, attemptNumber: number) => boolean | Promise<boolean>;
+    onRetry?: (attemptNumber: number, response: Response, delayMs: number) => void;
   };
 
   constructor(options?: RetryMiddlewareOptions) {
     this.#options = {
       limit: options?.limit ?? 2,
-      methods: (options?.methods ?? DEFAULT_RETRY_METHODS).map((m) =>
-        m.toUpperCase()
-      ),
+      methods: (options?.methods ?? DEFAULT_RETRY_METHODS).map((m) => m.toUpperCase()),
       statusCodes: options?.statusCodes ?? DEFAULT_RETRY_STATUS_CODES,
       maxRetryAfter: options?.maxRetryAfter ?? Infinity,
       backoffLimit: options?.backoffLimit ?? 30000,
@@ -186,10 +162,7 @@ export class RetryMiddleware {
 
         // Check custom shouldRetry predicate
         if (this.#options.shouldRetry) {
-          const shouldRetry = await this.#options.shouldRetry(
-            response,
-            attemptNumber,
-          );
+          const shouldRetry = await this.#options.shouldRetry(response, attemptNumber);
           if (!shouldRetry) {
             break;
           }
@@ -236,10 +209,7 @@ export class RetryMiddleware {
       baseDelay = this.#options.delay(attemptNumber, response);
     } else {
       // Default exponential backoff: 1s, 2s, 4s, 8s, ...
-      baseDelay = Math.min(
-        1000 * Math.pow(2, attemptNumber),
-        this.#options.backoffLimit,
-      );
+      baseDelay = Math.min(1000 * Math.pow(2, attemptNumber), this.#options.backoffLimit);
     }
 
     // Apply jitter
@@ -302,8 +272,6 @@ export class RetryMiddleware {
  * client.use(createRetryMiddleware({ limit: 3 }));
  * ```
  */
-export function createRetryMiddleware(
-  options?: RetryMiddlewareOptions,
-): FetchClientMiddleware {
+export function createRetryMiddleware(options?: RetryMiddlewareOptions): FetchClientMiddleware {
   return new RetryMiddleware(options).middleware();
 }
